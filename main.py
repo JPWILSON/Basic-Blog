@@ -37,6 +37,11 @@ class Handler(webapp2.RequestHandler):
 
 class MainPage(Handler):
 	def get(self):
-		self.render("index.html")
+		self.render("homepage.html")
 
-app = webapp2.WSGIApplication([('/', MainPage)], debug = True)
+class FormPage(Handler):
+	def get(self):
+		self.render("form.html")
+
+app = webapp2.WSGIApplication([('/', MainPage),
+								('/form', FormPage)], debug = True)
