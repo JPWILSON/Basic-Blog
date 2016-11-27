@@ -13,7 +13,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+# 
+'''
+This blog must have: 
+1. Front page that lists entries 
+2. Form to submit new entries 
+3. Permalink page for entries 
+'''
 import os 
 import webapp2
 import jinja2
@@ -38,6 +44,12 @@ class Handler(webapp2.RequestHandler):
 class MainPage(Handler):
 	def get(self):
 		self.render("homepage.html")
+'''
+class BlogEntries(db.model):
+	title = db.StringProperty(required = True)
+	post = db.TextProperty(required = True)
+	timestamp = db.DateTimeProperty(auto_now_add = True)'''
+
 
 class FormPage(Handler):
 	def get(self):

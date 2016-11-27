@@ -1,0 +1,29 @@
+{% extends "index.html" %}
+
+{% block content %}
+<link rel="stylesheet" type="text/css" href="/static/styles/styles.css" media= "screen and (max-width:361px)">
+<div class = "row">
+	<div class = "col-md-3 red"></div>
+	<div class = "col-md-6 blue">
+		<form class = "forms" method = "post">
+			<h2>What is your birthday</h2>
+			<label>
+				Day: 
+				<input name="day" value = "%(day)s">
+			</label><br>
+			<label>
+				Month: 
+				<input name ="month" value = "%(month)s">
+			</label><br>
+			<label>
+				Year: 
+				<input name ="year" value = "%(year)s">
+			</label><br>
+			<input type = "submit">
+		</form><!-- END FORM -->
+	</div>
+	<div class = "col-md-3 red"></div>
+</div>
+
+
+{% endblock %}
