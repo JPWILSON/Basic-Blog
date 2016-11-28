@@ -41,14 +41,26 @@ class Handler(webapp2.RequestHandler):
 	def render(self, *template, **params):
 		return self.write(self.render_str(*template, **params))
 
+
+
+
 class MainPage(Handler):
 	def get(self):
-		self.render("homepage.html")
-'''
-class BlogEntries(db.model):
-	title = db.StringProperty(required = True)
-	post = db.TextProperty(required = True)
-	timestamp = db.DateTimeProperty(auto_now_add = True)'''
+		posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+
+		self.render("homepage.html", posts = posts)
+
+#db entries:  
+
+def blog_key(name='dafault'):
+	return db.Key.from_path('blogs', name)
+
+class BlogEntry(db.Model):
+	subject = db.StringProperty(required = True)
+	content = db.TextProperty(required = True)
+	timestamp = db.DateTimeProperty(auto_now_add = True)
+	last_modified = db.DateTimeProperty(auto_now = True)
+
 
 
 
@@ -64,7 +76,10 @@ class FormPage(Handler):
 		content = self.request.get("content")
 
 		if subject and content:
-			self.write("Thanks for the submission")
+			b = BlogEntry(subject = subject, content = content)
+			b.put()
+
+			self.redirect("/")
 		else:
 			error = "To publish a blog post, both a subject, and content is required"
 			self.render_form(subject, content, error)
