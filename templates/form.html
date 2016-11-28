@@ -5,22 +5,19 @@
 <div class = "row">
 	<div class = "col-md-3 red"></div>
 	<div class = "col-md-6 blue">
-		<form class = "forms" method = "post">
-			<h2>What is your birthday</h2>
+		<form class = "text-center" method = "post">
+			<h2>Make a blog entry</h2>
 			<label>
-				Day: 
-				<input name="day" value = "%(day)s">
-			</label><br>
+				Subject: <br>
+				<input name="subject" value = "{{subject}}">
+			</label><br><br>
 			<label>
-				Month: 
-				<input name ="month" value = "%(month)s">
+				Content: <br>
+				<textarea name="content">{{content}}</textarea>
 			</label><br>
-			<label>
-				Year: 
-				<input name ="year" value = "%(year)s">
-			</label><br>
-			<input type = "submit">
-		</form><!-- END FORM -->
+			<input type = "submit" value="Publish">
+		</form><br><!-- END FORM -->
+		<div class = "row error text-center">{{error}}</div>
 	</div>
 	<div class = "col-md-3 red"></div>
 </div>

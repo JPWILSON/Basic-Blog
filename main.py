@@ -51,9 +51,25 @@ class BlogEntries(db.model):
 	timestamp = db.DateTimeProperty(auto_now_add = True)'''
 
 
+
 class FormPage(Handler):
+	def render_form(self, subject="", content="", error=""):
+		self.render("form.html", subject = subject, content = content, error = error)
+
 	def get(self):
-		self.render("form.html")
+		self.render_form()
+
+	def post(self):
+		subject = self.request.get("subject")
+		content = self.request.get("content")
+
+		if subject and content:
+			self.write("Thanks for the submission")
+		else:
+			error = "To publish a blog post, both a subject, and content is required"
+			self.render_form(subject, content, error)
+
+
 
 app = webapp2.WSGIApplication([('/', MainPage),
 								('/form', FormPage)], debug = True)
