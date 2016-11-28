@@ -1,17 +1,33 @@
 {% extends "index.html" %}
 {% block content %}
+
+<div class = "row">
+	<div class="col-md-12">
+		<h2 class = "text-muted text-center"><a href="index1.html">My Blog Posts</a></h2>
+	</div>
 </div>
-<div class = "row" id = "homepage">
+
+<div class = "row">
 	<div class = "col-md-3"></div>
-	<div class = "col-md-6 blog-entries">
-		<ol>
+	<div class = "col-md-6 ">
+		<ul class = "text-center">
 			<li>This is a list of blog entries</li>
 			<li>This is a list of blog entries</li>
 			<li>This is a list of blog entries</li>
-		</ol>
+		</ul>
 	</div>
 	<div class = "col-md-3"></div>
 </div>
 
+<div class = "row text-center">
+				<div class = "col-md-4">
+					<button onclick="location.href='/form'">Sign Up/In</button>
+				</div>
+				<div class = "col-md-4">
+				</div>
+				<div class = "col-md-4">
+					<button onclick="location.href='/form'">Make Blog Entry</button>
+				</div>
+			</div>
 
 {% endblock %}
