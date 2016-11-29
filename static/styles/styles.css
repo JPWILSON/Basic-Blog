@@ -36,3 +36,10 @@ hr{
 	color: red;
 }
 
+.table_name{
+	width: 150px;
+}
+
+.table_input{
+	width: 300px;
+}

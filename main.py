@@ -43,7 +43,7 @@ class Handler(webapp2.RequestHandler):
 
 
 
-
+#main page
 class MainPage(Handler):
 	def get(self):
 		posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
@@ -51,7 +51,6 @@ class MainPage(Handler):
 		self.render("homepage.html", posts = posts)
 
 #db entries:  
-
 def blog_key(name='dafault'):
 	return db.Key.from_path('blogs', name)
 
@@ -61,9 +60,12 @@ class BlogEntry(db.Model):
 	timestamp = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
 
+#Registration Page
+class SignUp(Handler):
+	def get(self):
+		self.render("signup.html")
 
-
-
+#Blog post page
 class FormPage(Handler):
 	def render_form(self, subject="", content="", error=""):
 		self.render("form.html", subject = subject, content = content, error = error)
@@ -87,4 +89,5 @@ class FormPage(Handler):
 
 
 app = webapp2.WSGIApplication([('/', MainPage),
-								('/form', FormPage)], debug = True)
+								('/form', FormPage),
+								('/signup', SignUp)], debug = True)
