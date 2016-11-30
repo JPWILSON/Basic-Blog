@@ -26,6 +26,7 @@ import webapp2
 import jinja2
 import string
 import random
+import hmac #for security, safer than using hashlib
 from google.appengine.ext import db 
 
 
@@ -33,19 +34,8 @@ from google.appengine.ext import db
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
 
-class Handler(webapp2.RequestHandler):
-	def write(self, *a, **kw):
-		self.response.out.write(*a, **kw)
 
-	def render_str(self, *template, **params):
-		t = jinja_env.get_template(*template)
-		return t.render(**params)
-
-	def render(self, *template, **params):
-		return self.write(self.render_str(*template, **params))
-
-#VALID INPUTS..
-
+#FUNCTINOS FOR CHECKING VALID INPUTS:
 def valid_username(username):
 		return username and USER_RE.match(username)
 #The line above means the same as:
@@ -62,6 +52,40 @@ USER_RE = re.compile(r"^[a-zA-Z0-9_-]{5,20}$")
 PASS_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
 
+#SECURITY (hasing, passwords, salts, etc)
+#safer, hmac hashing function:
+def hash_str(s):
+	return hmac.new(secret, s).hexdigest()
+
+def make_secure_val(s):
+	return "%s|%s" % (s, hash_str(s))
+
+def check_secure_val(h):
+	s = h.split("|")[0]
+	if h == make_secure_val(s):
+		return s
+
+#SECRET:
+secret = "dsafac334546vuvsry5(*Y(Hiouhewvtvt434t"
+
+#Adding the salt for security:
+#How to implement password protection
+def make_salt():
+	salt = ''.join([random.choice(string.letters) for i in range(5)])
+	return salt
+
+#Now, making hash with the salt:
+def make_hash_pw(name, pw, salt = None):
+	if not salt:
+		s = make_salt()
+	hf = hashlib.sha256(name+pw+s).hexdigest()
+	return "%s,%s" % (hf, s)
+
+#Now it needs to be verified (and actually used). That is, when user enters name & pw:
+def valid_pw(name, pw, h):
+	salt = h.split(",")[1]
+	return h == make_hash_pw(name, pw, salt)
+
 
 #########      ---- MAIN PAGE ----
 
@@ -76,8 +100,19 @@ class MainPage(Handler):
 		else:
 			self.render("homepage.html", posts = posts, username="Guest")
 
+#DB ENTRIES OF USERS:
+def users_key(group= 'default'):
+	return db.key.from_path('users', group)
 
-#db entries:  
+#Now, the user object which will be stored in the google datastre
+class Users(db.Model):
+	name = db.StringProperty(required = True)
+	#We dont store pws in our db, we store hash of passwords...
+	pw_hash = db.StringProperty(required = True)
+	email = db.StringProperty()
+#These are just methods for getting a user out of the db, by their name or their id. 
+#Select * FROM user WHERE name = name
+#DB BLOG entries:  
 def blog_key(name='dafault'):
 	return db.Key.from_path('blogs', name)
 
@@ -86,6 +121,41 @@ class BlogEntry(db.Model):
 	content = db.TextProperty(required = True)
 	timestamp = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
+
+#Defining the handler function:
+class Handler(webapp2.RequestHandler):
+	def write(self, *a, **kw):
+		self.response.out.write(*a, **kw)
+
+	def render_str(self, *template, **params):
+		t = jinja_env.get_template(*template)
+		return t.render(**params)
+
+	def render(self, *template, **params):
+		return self.write(self.render_str(*template, **params))
+
+
+	#Now, add code to set a cookie (go check notes on expiration)
+	def set_secure_cookie(self, name, val):
+		cookie_val = make_secure_val(val)
+		self.response.headers.add_header(
+			'Set-Cookie',
+			'%s = %s; Path=/' % (name, cookie_val))
+
+	def read_secure_cookie(self, name):
+		cookie_val = self.request.cookies.get(name)
+		return cookie_val and check_secure_val(cookie_val)
+
+	def login(self, user):
+		self.set_secure_cookie('user_id', str(user.key().id()))
+
+	def logout(self):
+		self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
+
+	def initialize(self, *a, **kw):
+		webapp2.RequestHandler.initialize(self, *a, **kw)
+		uid = self.read_secure_cookie('user_id')
+		self.user = uid and User.by_id(int(uid))
 
 #Registration Page
 class SignUp(Handler):
@@ -121,6 +191,7 @@ class SignUp(Handler):
 		if have_error:
 			self.render("signup.html", **params)
 		else:
+			#Well, we shouldn't be doing it this way, the username should be in a cookie....
 			self.redirect('/?username=' + username)
 
 
