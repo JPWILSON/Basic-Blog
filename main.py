@@ -33,7 +33,8 @@ from google.appengine.ext import db
 
 # This is all helper stuff....
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
+jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), 
+	autoescape = True)
 
 
 #FUNCTINOS FOR CHECKING VALID INPUTS:
@@ -80,9 +81,11 @@ def make_hash_pw(name, pw, salt = None):
 	if not salt:
 		s = make_salt()
 	hf = hashlib.sha256(name+pw+s).hexdigest()
-	return "%s,%s" % (hf, s)
+	return "%s,%s" % (s, hf)
+	#return "%s,%s" % (hf, s)
 
-#Now it needs to be verified (and actually used). That is, when user enters name & pw:
+#Now it needs to be verified (and actually used). That is, 
+#when user enters name & pw:
 def valid_pw(name, pw, h):
 	salt = h.split(",")[1]
 	return h == make_hash_pw(name, pw, salt)
@@ -111,7 +114,7 @@ class Handler(webapp2.RequestHandler):
 	def read_secure_cookie(self, name):
 		cookie_val = self.request.cookies.get(name)
 		return cookie_val and check_secure_val(cookie_val)
-
+#Change this to the second login_name?
 	def login(self, user):
 		self.set_secure_cookie('user_id', str(user.key().id()))
 
@@ -133,24 +136,25 @@ class User(db.Model):
 	#We dont store pws in our db, we store hash of passwords...
 	pw_hash = db.StringProperty(required = True)
 	email = db.StringProperty()
-#These are just methods for getting a user out of the db, by their name or their id. 
+#These are just methods for getting a user out of the db,
+# by their name or their id. 
 	
 	@classmethod
 	def by_id(cls, uid):
-		return User.get_by_id(uid, parent = users_key())
+		return cls.get_by_id(uid, parent = users_key())
 
 	@classmethod
 	def by_name(cls, name):
-		u = User.all().filter('name =', name).get()
+		u = cls.all().filter('name =', name).get()
 		#This would be similar to:
 		#Select * FROM user WHERE name = name
-		#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
 		return u
 
 	@classmethod
-	def resgister(cls, name, pw, email = None):
+	def register(cls, name, pw, email = None):
 		pw_hash = make_hash_pw(name, pw)
-		return User(parent = users_key(),
+		return cls(parent = users_key(),
 					name = name, 
 					pw_hash = pw_hash,
 					email = email)
@@ -178,15 +182,19 @@ class BlogEntry(db.Model):
 class MainPage(Handler):
 	def get(self):
 		posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+		if self.user:
+			self.render("homepage.html", username=self.user.name, posts = posts)
+		else:
+			self.render("homepage.html", username="Guest", posts = posts)
 
-		username = self.request.get("username")
+'''
+		username = self.request.get("name")
 		if valid_username(username):
 			self.render("homepage.html", username=username, posts = posts)
 
 		else:
 			self.render("homepage.html", posts = posts, username="Guest")
-
-
+'''
 
 ########    ---REGISTRATION PAGE----
 class SignUp(Handler):
@@ -194,13 +202,15 @@ class SignUp(Handler):
 		self.render("signup.html")
 
 	def post(self):
-		have_error = False #If make it through the whole page with no errors, then render the success page
+		have_error = False #If make it through the whole page with no errors,
+		# then render the success page
 		self.username = self.request.get("username")
 		self.password = self.request.get("password")
 		self.verify = self.request.get("verify")
 		self.email = self.request.get("email")
 
-		params = dict(username = self.username, email = self.email) #This is for string substitution back into the signup form
+		params = dict(username = self.username, email = self.email) 
+		#This is for string substitution back into the signup form
 
 		#Now, checking the signup form inputs: 
 		if not valid_username(self.username):
@@ -222,8 +232,9 @@ class SignUp(Handler):
 		if have_error:
 			self.render("signup.html", **params)
 		else:
-			#Well, we shouldn't be doing it this way, the username should be in a cookie....
-			#This is what we did, but change it cause of 'register' class:self.redirect('/?username=' + username)
+			#Well, we shouldn't be doing it this way, the username should 
+			#be in a cookie....This is what we did, but change it cause of 
+			#'register' class:self.redirect('/?username=' + username)
 			self.done()
 
 
@@ -233,21 +244,46 @@ class Register(SignUp):
 		#First, we ensure that the user is not already registered in the db:
 		u = User.by_name(self.username)
 		if u:
-			msg = 'Unfortunatley this username already exists'
+			msg = 'Unfortunately this username already exists'
 			self.render('signup.html', name_error = msg)
 		else:
 			#So, now if not a taken username, can add user to database:
-			u = User.resgister(self.username, self.password, self.email)
+			u = User.register(self.username, self.password, self.email)
 			u.put()
 
 			self.login(u)
 			#All that login does is set the cookie
+			self.redirect('/')
+
+class Login(Handler):
+	def get(self):
+		self.render("login.html")
+
+	def post(self):
+		username = self.request.get('username')
+		password = self.request.get('password')
+
+		u = User.login(username, password)
+		if u:
+			self.login(u)
+			self.redirect('/')
+		else:
+			msg = 'Invalid login'
+			self.render("login.html", error = msg)
+
+class Logout(Handler):
+	def get(self):
+		self.logout()
 		self.redirect('/')
+
+
+
 
 #Blog post page
 class FormPage(Handler):
 	def render_form(self, subject="", content="", error=""):
-		self.render("form.html", subject = subject, content = content, error = error)
+		self.render("blog_form.html", subject = subject, content = content, 
+			error = error)
 
 	def get(self):
 		self.render_form()
@@ -268,5 +304,7 @@ class FormPage(Handler):
 
 
 app = webapp2.WSGIApplication([('/', MainPage),
-								('/form', FormPage), #This is where you make a blog submission
-								('/signup', Register)], debug = True)
+								('/form', FormPage),#Where you make a blog submission
+								('/signup', Register),
+								('/login', Login),
+								('/logout', Logout)], debug = True)
