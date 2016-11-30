@@ -27,6 +27,7 @@ import jinja2
 import string
 import random
 import hmac #for security, safer than using hashlib
+import hashlib
 from google.appengine.ext import db 
 
 
@@ -66,7 +67,7 @@ def check_secure_val(h):
 		return s
 
 #SECRET:
-secret = "dsafac334546vuvsry5(*Y(Hiouhewvtvt434t"
+secret = "dsafac334546vu~!`3fdhgsry5(*Y(Hiouhewvtvt434t"
 
 #Adding the salt for security:
 #How to implement password protection
@@ -86,41 +87,6 @@ def valid_pw(name, pw, h):
 	salt = h.split(",")[1]
 	return h == make_hash_pw(name, pw, salt)
 
-
-#########      ---- MAIN PAGE ----
-
-class MainPage(Handler):
-	def get(self):
-		posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
-
-		username = self.request.get("username")
-		if valid_username(username):
-			self.render("homepage.html", username=username, posts = posts)
-
-		else:
-			self.render("homepage.html", posts = posts, username="Guest")
-
-#DB ENTRIES OF USERS:
-def users_key(group= 'default'):
-	return db.key.from_path('users', group)
-
-#Now, the user object which will be stored in the google datastre
-class Users(db.Model):
-	name = db.StringProperty(required = True)
-	#We dont store pws in our db, we store hash of passwords...
-	pw_hash = db.StringProperty(required = True)
-	email = db.StringProperty()
-#These are just methods for getting a user out of the db, by their name or their id. 
-#Select * FROM user WHERE name = name
-#DB BLOG entries:  
-def blog_key(name='dafault'):
-	return db.Key.from_path('blogs', name)
-
-class BlogEntry(db.Model):
-	subject = db.StringProperty(required = True)
-	content = db.TextProperty(required = True)
-	timestamp = db.DateTimeProperty(auto_now_add = True)
-	last_modified = db.DateTimeProperty(auto_now = True)
 
 #Defining the handler function:
 class Handler(webapp2.RequestHandler):
@@ -157,34 +123,99 @@ class Handler(webapp2.RequestHandler):
 		uid = self.read_secure_cookie('user_id')
 		self.user = uid and User.by_id(int(uid))
 
-#Registration Page
+#DB ENTRIES OF USERS:
+def users_key(group= 'default'):
+	return db.Key.from_path('users', group)
+
+#Now, the user object which will be stored in the google datastre
+class User(db.Model):
+	name = db.StringProperty(required = True)
+	#We dont store pws in our db, we store hash of passwords...
+	pw_hash = db.StringProperty(required = True)
+	email = db.StringProperty()
+#These are just methods for getting a user out of the db, by their name or their id. 
+	
+	@classmethod
+	def by_id(cls, uid):
+		return User.get_by_id(uid, parent = users_key())
+
+	@classmethod
+	def by_name(cls, name):
+		u = User.all().filter('name =', name).get()
+		#This would be similar to:
+		#Select * FROM user WHERE name = name
+		#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+		return u
+
+	@classmethod
+	def resgister(cls, name, pw, email = None):
+		pw_hash = make_hash_pw(name, pw)
+		return User(parent = users_key(),
+					name = name, 
+					pw_hash = pw_hash,
+					email = email)
+
+	@classmethod
+	def login(cls, name, pw):
+		u = cls.by_name(name)
+		if u and valid_pw(name, pw, u.pw_hash):
+			return u
+
+
+
+#DB BLOG entries:  
+def blog_key(name='dafault'):
+	return db.Key.from_path('blogs', name)
+
+class BlogEntry(db.Model):
+	subject = db.StringProperty(required = True)
+	content = db.TextProperty(required = True)
+	timestamp = db.DateTimeProperty(auto_now_add = True)
+	last_modified = db.DateTimeProperty(auto_now = True)
+
+#########      ---- MAIN PAGE ----
+
+class MainPage(Handler):
+	def get(self):
+		posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+
+		username = self.request.get("username")
+		if valid_username(username):
+			self.render("homepage.html", username=username, posts = posts)
+
+		else:
+			self.render("homepage.html", posts = posts, username="Guest")
+
+
+
+########    ---REGISTRATION PAGE----
 class SignUp(Handler):
 	def get(self):
 		self.render("signup.html")
 
 	def post(self):
 		have_error = False #If make it through the whole page with no errors, then render the success page
-		username = self.request.get("username")
-		password = self.request.get("password")
-		verify = self.request.get("verify")
-		email = self.request.get("email")
+		self.username = self.request.get("username")
+		self.password = self.request.get("password")
+		self.verify = self.request.get("verify")
+		self.email = self.request.get("email")
 
-		params = dict(username = username, email = email) #This is for string substitution back into the signup form
+		params = dict(username = self.username, email = self.email) #This is for string substitution back into the signup form
 
 		#Now, checking the signup form inputs: 
-		if not valid_username(username):
+		if not valid_username(self.username):
 			params["name_error"] = "That is not a valid username"
 			have_error = True
 
-		if not valid_password(password):
+		if not valid_password(self.password):
 			params["password_error"] = "That is not a valid password"
 			have_error = True
 
-		elif password != verify:
+		elif self.password != self.verify:
 			params["verify_error"] = "Your passwords do not match"
 			have_error = True
 
-		if not valid_email(email):
+		if not valid_email(self.email):
 			params["email_error"] = "That is not a valid email address"
 			have_error = True
 
@@ -192,10 +223,26 @@ class SignUp(Handler):
 			self.render("signup.html", **params)
 		else:
 			#Well, we shouldn't be doing it this way, the username should be in a cookie....
-			self.redirect('/?username=' + username)
+			#This is what we did, but change it cause of 'register' class:self.redirect('/?username=' + username)
+			self.done()
 
 
+#  Register is descended from signup:
+class Register(SignUp):
+	def done(self):
+		#First, we ensure that the user is not already registered in the db:
+		u = User.by_name(self.username)
+		if u:
+			msg = 'Unfortunatley this username already exists'
+			self.render('signup.html', name_error = msg)
+		else:
+			#So, now if not a taken username, can add user to database:
+			u = User.resgister(self.username, self.password, self.email)
+			u.put()
 
+			self.login(u)
+			#All that login does is set the cookie
+		self.redirect('/')
 
 #Blog post page
 class FormPage(Handler):
@@ -222,4 +269,4 @@ class FormPage(Handler):
 
 app = webapp2.WSGIApplication([('/', MainPage),
 								('/form', FormPage), #This is where you make a blog submission
-								('/signup', SignUp)], debug = True)
+								('/signup', Register)], debug = True)
