@@ -1,0 +1,43 @@
+{% extends "index.html" %}
+{% block content %}
+
+<div class = "row">
+	<div class="col-md-12">
+		<h2 class = "text-muted text-center">Blog entry number &nbsp {{post_no}}</h2>
+	</div>
+</div>
+
+<div class = "row text-center">
+				<div class = "col-md-3">
+					<button onclick="location.href='/signup'">Edit</button>
+				</div>
+				<div class = "col-md-3">
+					<button onclick="location.href='/form'">Delete</button>
+				</div>
+				<div class = "col-md-3">
+					<button onclick="location.href='/logout'">Like</button>
+				</div>
+				<div class = "col-md-3">
+					<button onclick="location.href='/form'">Comment</button>
+				</div><br>
+</div>
+<hr>
+
+<div class = "row">
+	<div class = "col-md-3"></div>
+	<div class = "col-md-6 ">
+		<ul class = "text-center">
+
+				<div class= "text-center">
+					<h3><b>Title:</b> {{post.subject}}</h3> &nbsp<b>Created:</b> {{post.timestamp}}
+					<div>{{post.content}}</div><hr class = "thin">
+				</div>
+
+			
+		</ul>
+	</div>
+	<div class = "col-md-3"></div>
+</div>
+
+
+{% endblock %}
