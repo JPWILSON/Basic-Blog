@@ -5,15 +5,15 @@
 <div class = "row">
 	<div class = "col-md-2 red"></div>
 	<div class = "col-md-8 blue">
-		<form class = "text-center" method = "post">
+		<form class = "text-center borders" method = "post">
 			<h2>Make a blog entry</h2>
-			<label>
+			<label class = "blog-form">
 				Subject: <br>
-				<input name="subject" value = "{{subject}}">
+				<input class = "subject" name="subject" value = "{{subject}}">
 			</label><br><br>
-			<label>
+			<label class = "blog-form">
 				Content: <br>
-				<textarea name="content">{{content}}</textarea>
+				<textarea class = "content" name="content">{{content}}</textarea>
 			</label><br>
 			<input type = "submit" value="Publish">
 		</form><br><!-- END FORM -->

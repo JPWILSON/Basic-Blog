@@ -142,6 +142,10 @@ class BlogEntry(db.Model):
 	timestamp = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
 
+	def render(self):
+		self._render_text = self.content.replace('\n', '<br>')
+		return render_str("post.html", p = self)
+
 
 #Defining the handler function:
 class Handler(webapp2.RequestHandler):
@@ -180,12 +184,14 @@ class Handler(webapp2.RequestHandler):
 		self.user = uid and User.by_id(int(uid))
 
 
-
 #########      ---- MAIN PAGE ----
 
 class MainPage(Handler):
 	def get(self):
-		posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+		#Previously used gql (now, gone back to this):
+		#posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC LIMIT 10")
+		#Now, will use google's procedural language:
+		posts = BlogEntry.all().order('-timestamp')
 		if self.user:
 			self.render("homepage.html", username=self.user.name, posts = posts)
 		else:
@@ -199,7 +205,8 @@ class MainPage(Handler):
 		else:
 			self.render("homepage.html", posts = posts, username="Guest")
 '''
-
+class BlogFront(Handler):
+	pass
 ########    ---REGISTRATION PAGE----
 class SignUp(Handler):
 	def get(self):
@@ -304,11 +311,24 @@ class FormPage(Handler):
 		else:
 			error = "To publish a blog post, both a subject, and content is required"
 			self.render_form(subject, content, error)
+#    ---- PARTICULAR POST -----
 
+class PostPage(Handler):
+	def get(self, post_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
+		post = db.get(key)
+
+		if not post:
+			self.error(404)
+			return
+
+		self.render("permalink.html", post = post, post_no = post_id)
 
 
 app = webapp2.WSGIApplication([('/', MainPage),
 								('/form', FormPage),#Where you make a blog submission
 								('/signup', Register),
 								('/login', Login),
-								('/logout', Logout)], debug = True)
+								('/logout', Logout),
+								('/blog/?', BlogFront),
+								('/blog/([0-9]+)', PostPage)], debug = True)

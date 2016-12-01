@@ -43,3 +43,21 @@ hr{
 .table_input{
 	width: 300px;
 }
+
+.blog-form{
+	width: 100%;
+}
+.subject{
+	width: 80%;
+}
+
+.content{
+	width: 80%;
+	height: 300px;
+}
+
+.thin{
+	border: none;
+	height: 0.5px;
+	background-color: #242526;
+}

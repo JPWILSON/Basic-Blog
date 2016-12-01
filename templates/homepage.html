@@ -3,7 +3,7 @@
 
 <div class = "row">
 	<div class="col-md-12">
-		<h2 class = "text-muted text-center"><a href="/">My Blog Posts</a></h2>
+		<h2 class = "text-muted text-center"><a href="/">Recent Blog Entries</a></h2>
 	</div>
 </div>
 
@@ -26,13 +26,12 @@
 		<ul class = "text-center">
 				{% for post in posts %}
 
-			
-			<pre >
 				<div class= "text-center">
-					<b>Title:</b> {{post.subject}} &nbsp<b>Created:</b> {{post.timestamp}}
+					<h3><b>Title:</b> {{post.subject}}</h3> &nbsp<b>Created:</b> {{post.timestamp}}
 					<div>{{post.content}}</div>
+					<div>POst id: {{post.id}}</div>
+					<hr class = "thin">
 				</div>
-			</pre>
 
 				{% endfor %}
 			
