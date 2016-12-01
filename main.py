@@ -68,7 +68,7 @@ def check_secure_val(h):
 		return s
 
 #SECRET:
-secret = "dsafac334546vu~!`3fdhgsry5(*Y(Hiouhewvtvt434t"
+secret = "super_secrety_secret" 
 
 #Adding the salt for security:
 #How to implement password protection
@@ -79,16 +79,68 @@ def make_salt():
 #Now, making hash with the salt:
 def make_hash_pw(name, pw, salt = None):
 	if not salt:
-		s = make_salt()
-	hf = hashlib.sha256(name+pw+s).hexdigest()
-	return "%s,%s" % (s, hf)
+		salt = make_salt()
+	h = hashlib.sha256(name+pw+salt).hexdigest()
+	return "%s,%s" % (salt, h)
 	#return "%s,%s" % (hf, s)
 
 #Now it needs to be verified (and actually used). That is, 
 #when user enters name & pw:
 def valid_pw(name, pw, h):
-	salt = h.split(",")[1]
+	#salt = h.split(",")[1]
+	salt = h.split(",")[0]
 	return h == make_hash_pw(name, pw, salt)
+
+#DB ENTRIES OF USERS:
+def users_key(group= 'default'):
+	return db.Key.from_path('users', group)
+
+#Now, the user object which will be stored in the google datastre
+class User(db.Model):
+	name = db.StringProperty(required = True)
+	#We dont store pws in our db, we store hash of passwords...
+	pw_hash = db.StringProperty(required = True)
+	email = db.StringProperty()
+#These are just methods for getting a user out of the db,
+# by their name or their id. 
+	
+	@classmethod
+	def by_id(cls, uid):
+		return cls.get_by_id(uid, parent = users_key())
+
+	@classmethod
+	def by_name(cls, name):
+		u = cls.all().filter('name =', name).get()
+		return u
+		#This would be similar to:
+		#Select * FROM user WHERE name = name
+#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+		
+
+	@classmethod
+	def register(cls, name, pw, email = None):
+		pw_hash = make_hash_pw(name, pw)
+		return cls(parent = users_key(),
+					name = name, 
+					pw_hash = pw_hash,
+					email = email)
+
+	@classmethod
+	def user_object_login(cls, name, pw):
+		u = cls.by_name(name)
+		if u and valid_pw(name, pw, u.pw_hash):
+			return u
+
+
+#DB BLOG entries:  
+def blog_key(name='dafault'):
+	return db.Key.from_path('blogs', name)
+
+class BlogEntry(db.Model):
+	subject = db.StringProperty(required = True)
+	content = db.TextProperty(required = True)
+	timestamp = db.DateTimeProperty(auto_now_add = True)
+	last_modified = db.DateTimeProperty(auto_now = True)
 
 
 #Defining the handler function:
@@ -114,7 +166,8 @@ class Handler(webapp2.RequestHandler):
 	def read_secure_cookie(self, name):
 		cookie_val = self.request.cookies.get(name)
 		return cookie_val and check_secure_val(cookie_val)
-#Change this to the second login_name?
+#Change this to the second login_name? Nope- change the other login
+# user_object_login
 	def login(self, user):
 		self.set_secure_cookie('user_id', str(user.key().id()))
 
@@ -126,56 +179,7 @@ class Handler(webapp2.RequestHandler):
 		uid = self.read_secure_cookie('user_id')
 		self.user = uid and User.by_id(int(uid))
 
-#DB ENTRIES OF USERS:
-def users_key(group= 'default'):
-	return db.Key.from_path('users', group)
 
-#Now, the user object which will be stored in the google datastre
-class User(db.Model):
-	name = db.StringProperty(required = True)
-	#We dont store pws in our db, we store hash of passwords...
-	pw_hash = db.StringProperty(required = True)
-	email = db.StringProperty()
-#These are just methods for getting a user out of the db,
-# by their name or their id. 
-	
-	@classmethod
-	def by_id(cls, uid):
-		return cls.get_by_id(uid, parent = users_key())
-
-	@classmethod
-	def by_name(cls, name):
-		u = cls.all().filter('name =', name).get()
-		#This would be similar to:
-		#Select * FROM user WHERE name = name
-#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
-		return u
-
-	@classmethod
-	def register(cls, name, pw, email = None):
-		pw_hash = make_hash_pw(name, pw)
-		return cls(parent = users_key(),
-					name = name, 
-					pw_hash = pw_hash,
-					email = email)
-
-	@classmethod
-	def login(cls, name, pw):
-		u = cls.by_name(name)
-		if u and valid_pw(name, pw, u.pw_hash):
-			return u
-
-
-
-#DB BLOG entries:  
-def blog_key(name='dafault'):
-	return db.Key.from_path('blogs', name)
-
-class BlogEntry(db.Model):
-	subject = db.StringProperty(required = True)
-	content = db.TextProperty(required = True)
-	timestamp = db.DateTimeProperty(auto_now_add = True)
-	last_modified = db.DateTimeProperty(auto_now = True)
 
 #########      ---- MAIN PAGE ----
 
@@ -263,7 +267,7 @@ class Login(Handler):
 		username = self.request.get('username')
 		password = self.request.get('password')
 
-		u = User.login(username, password)
+		u = User.user_object_login(username, password)
 		if u:
 			self.login(u)
 			self.redirect('/')
