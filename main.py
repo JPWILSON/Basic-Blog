@@ -307,7 +307,8 @@ class FormPage(Handler):
 	def get(self):
 		if self.user:
 			self.render_form()
-		else:self.redirect('/signup', name_error="Need to be registered and logged in to make a post")
+		else:
+			self.redirect('/signup', name_error="Need to be registered and logged in to make a post")
 
 	def post(self):
 		if not self.user:
@@ -321,7 +322,7 @@ class FormPage(Handler):
 						  subject = subject, content = content)
 			b.put()
 			post_id = str(b.key().id())
-			self.redirect("/blog/%s" % post_id, post_id=post_id)
+			self.redirect("/blog/%s" % post_id)
 		else:
 			error = "To publish a blog post, both a subject, and content is required"
 			self.render_form(subject, content, error)
