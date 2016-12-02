@@ -8,15 +8,23 @@
 </div>
 
 <div class = "row text-center">
+
 				<div class = "col-md-4">
+						{% if username == "Guest" %}
 					<button onclick="location.href='/signup'">Sign Up/In</button>
+						{% endif %}
 				</div>
 				<div class = "col-md-4">
+						{% if username != "Guest" %}
 					<button onclick="location.href='/form'">Make Blog Entry</button>
+						{% endif %}
 				</div>
 				<div class = "col-md-4">
+						{% if username != "Guest" %}
 					<button onclick="location.href='/logout'">Logout</button>
+						{% endif %}
 				</div><br>
+	
 </div>
 <hr>
 
@@ -24,13 +32,10 @@
 	<div class = "col-md-3"></div>
 	<div class = "col-md-6 ">
 		<ul class = "text-center">
-				{% for post in posts %}
+				{% for p in posts %}
 
 				<div class= "text-center">
-					<h3><b>Title:</b> {{post.subject}}</h3> &nbsp<b>Created:</b> {{post.timestamp}}
-					<div>{{post.content}}</div>
-					<div>POst id: {{post.id}}</div>
-					<hr class = "thin">
+					{{ p.render() | safe }}<br><br>
 				</div>
 
 				{% endfor %}

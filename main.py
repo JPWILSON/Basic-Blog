@@ -33,15 +33,20 @@ from google.appengine.ext import db
 
 # This is all helper stuff....
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), 
-	autoescape = True)
+jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
 
+
+#REGEX:
+USER_RE = re.compile(r"^[a-zA-Z0-9_-]{5,20}$")
+PASS_RE = re.compile(r"^.{3,20}$")
+EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
 
 #FUNCTINOS FOR CHECKING VALID INPUTS:
+
 def valid_username(username):
 		return username and USER_RE.match(username)
 #The line above means the same as:
-#	If there is a username, & it matches thes regex, then return True 
+#	If there is a username, & it matches this regex, then return True 
 
 def valid_password(password):
 		return password and PASS_RE.match(password)
@@ -49,10 +54,6 @@ def valid_password(password):
 def valid_email(email):
 		return not email or EMAIL_RE.match(email)
 
-#REGEX:
-USER_RE = re.compile(r"^[a-zA-Z0-9_-]{5,20}$")
-PASS_RE = re.compile(r"^.{3,20}$")
-EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
 
 #SECURITY (hasing, passwords, salts, etc)
 #safer, hmac hashing function:
@@ -62,6 +63,8 @@ def hash_str(s):
 def make_secure_val(s):
 	return "%s|%s" % (s, hash_str(s))
 
+#This uses the above 2 fns to determine is the value entered is correct
+#(eg, did the password entered match that originally created)
 def check_secure_val(h):
 	s = h.split("|")[0]
 	if h == make_secure_val(s):
@@ -114,7 +117,7 @@ class User(db.Model):
 		return u
 		#This would be similar to:
 		#Select * FROM user WHERE name = name
-#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")
+#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")?not exactly
 		
 
 	@classmethod
@@ -131,21 +134,28 @@ class User(db.Model):
 		if u and valid_pw(name, pw, u.pw_hash):
 			return u
 
-
 #DB BLOG entries:  
 def blog_key(name='dafault'):
 	return db.Key.from_path('blogs', name)
 
 class BlogEntry(db.Model):
+	#user_id = db.StringProperty(required=True)
 	subject = db.StringProperty(required = True)
 	content = db.TextProperty(required = True)
 	timestamp = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
 
+	def get_author(self):
+		author  = User.by_id(self.user_id)
+		return author.name
+
 	def render(self):
 		self._render_text = self.content.replace('\n', '<br>')
 		return render_str("post.html", p = self)
-
+###Careful with this.....
+def render_str(*template, **params):
+	t = jinja_env.get_template(*template)
+	return t.render(**params)
 
 #Defining the handler function:
 class Handler(webapp2.RequestHandler):
@@ -186,7 +196,7 @@ class Handler(webapp2.RequestHandler):
 
 #########      ---- MAIN PAGE ----
 
-class MainPage(Handler):
+class BlogFront(Handler):
 	def get(self):
 		#Previously used gql (now, gone back to this):
 		#posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC LIMIT 10")
@@ -205,8 +215,6 @@ class MainPage(Handler):
 		else:
 			self.render("homepage.html", posts = posts, username="Guest")
 '''
-class BlogFront(Handler):
-	pass
 ########    ---REGISTRATION PAGE----
 class SignUp(Handler):
 	def get(self):
@@ -297,17 +305,23 @@ class FormPage(Handler):
 			error = error)
 
 	def get(self):
-		self.render_form()
+		if self.user:
+			self.render_form()
+		else:self.redirect('/signup', name_error="Need to be registered and logged in to make a post")
 
 	def post(self):
+		if not self.user:
+			self.redirect('/')
+
 		subject = self.request.get("subject")
 		content = self.request.get("content")
 
 		if subject and content:
-			b = BlogEntry(subject = subject, content = content)
+			b = BlogEntry(parent = blog_key(), user_id = self.user.key().id(), 
+						  subject = subject, content = content)
 			b.put()
-
-			self.redirect("/")
+			post_id = str(b.key().id())
+			self.redirect("/blog/%s" % post_id, post_id=post_id)
 		else:
 			error = "To publish a blog post, both a subject, and content is required"
 			self.render_form(subject, content, error)
@@ -325,10 +339,9 @@ class PostPage(Handler):
 		self.render("permalink.html", post = post, post_no = post_id)
 
 
-app = webapp2.WSGIApplication([('/', MainPage),
+app = webapp2.WSGIApplication([('/', BlogFront),
 								('/form', FormPage),#Where you make a blog submission
 								('/signup', Register),
 								('/login', Login),
 								('/logout', Logout),
-								('/blog/?', BlogFront),
 								('/blog/([0-9]+)', PostPage)], debug = True)
