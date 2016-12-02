@@ -145,13 +145,14 @@ class BlogEntry(db.Model):
 	timestamp = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
 
-	def get_author(self):
-		author  = User.by_id(self.user_id)
-		return author.name
-
 	def render(self):
 		self._render_text = self.content.replace('\n', '<br>')
 		return render_str("post.html", p = self)
+
+	'''
+	def get_author(self):
+		author  = User.by_id(self.user_id)
+		return author.name'''
 ###Careful with this.....
 def render_str(*template, **params):
 	t = jinja_env.get_template(*template)
@@ -296,8 +297,6 @@ class Logout(Handler):
 		self.redirect('/')
 
 
-
-
 #Blog post page
 class FormPage(Handler):
 	def render_form(self, subject="", content="", error=""):
@@ -332,12 +331,11 @@ class PostPage(Handler):
 	def get(self, post_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
-
 		if not post:
 			self.error(404)
 			return
 
-		self.render("permalink.html", post = post, post_no = post_id)
+		self.render("permalink.html", post = post)
 
 
 app = webapp2.WSGIApplication([('/', BlogFront),
