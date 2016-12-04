@@ -139,11 +139,13 @@ def blog_key(name='dafault'):
 	return db.Key.from_path('blogs', name)
 
 class BlogEntry(db.Model):
-	#user_id = db.StringProperty(required=True)
+	author = db.StringProperty(required=True)
 	subject = db.StringProperty(required = True)
 	content = db.TextProperty(required = True)
 	timestamp = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
+	likers = db.IntegerProperty()
+	likes = db.StringListProperty()
 
 	def render(self):
 		self._render_text = self.content.replace('\n', '<br>')
@@ -197,6 +199,19 @@ class Handler(webapp2.RequestHandler):
 
 
 #########      ---- MAIN PAGE ----
+#    ---- PARTICULAR POST -----
+
+class PostPage(Handler):
+	def get(self, post_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
+		post = db.get(key)
+		if not post:
+			self.error(404)
+			return
+		if self.user:
+			self.render("permalink.html", username = self.user.name, post = post)
+		self.render("permalink.html", post = post, username = "Guest")
+
 
 class BlogFront(Handler):
 	def get(self):
@@ -306,8 +321,8 @@ class Logout(Handler):
 
 #Blog post page
 class FormPage(Handler):
-	def render_form(self, subject="", content="", error=""):
-		self.render("blog_form.html", subject = subject, content = content, 
+	def render_form(self, author="", subject="", content="", error=""):
+		self.render("blog_form.html",author =author, subject = subject, content = content, 
 			error = error)
 
 	def get(self):
@@ -322,28 +337,17 @@ class FormPage(Handler):
 
 		subject = self.request.get("subject")
 		content = self.request.get("content")
-
+		author = self.user.name
 		if subject and content:
-			b = BlogEntry(parent = blog_key(), user_id = self.user.key().id(), 
+			b = BlogEntry(parent = blog_key(), author=author, 
 						  subject = subject, content = content)
 			b.put()
 			post_id = str(b.key().id())
 			self.redirect("/blog/%s" % post_id)
 		else:
 			error = "To publish a blog post, both a subject, and content is required"
-			self.render_form(subject, content, error)
-#    ---- PARTICULAR POST -----
+			self.render_form(author, subject, content, error)
 
-class PostPage(Handler):
-	def get(self, post_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
-		post = db.get(key)
-		if not post:
-			self.error(404)
-			return
-		if self.user:
-			self.render("permalink.html", username = self.user.name, post = post)
-		self.render("permalink.html", post = post, username = "Guest")
 
 
 app = webapp2.WSGIApplication([('/', BlogFront),
