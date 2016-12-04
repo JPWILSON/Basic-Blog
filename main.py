@@ -348,6 +348,33 @@ class FormPage(Handler):
 			error = "To publish a blog post, both a subject, and content is required"
 			self.render_form(author, subject, content, error)
 
+class EditBlogEntry(Handler):
+	def get(self, post_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		p = db.get(key)
+
+		if self.user.name == p.author:
+			self.render("edit_blog_form.html", p=p, subject=p.subject, content = p.content)
+		else:
+			error = "You can only edit your own post, and you have to be signed in to do that"
+			self.render("login.html", error = error)
+
+	def post(self, post_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		p = db.get(key)
+
+		subject = self.request.get("subject")
+		content = self.request.get("content")
+		# Obvisouly this is the author, author = self.user.name
+		if subject and content:
+			p.subject = subject
+			p.content = content
+			p.put()
+			post_id = str(p.key().id())
+			self.redirect("/blog/%s" % post_id)
+		else:
+			error = "To publish a blog post, both a subject, and content is required"
+			self.render_form(author, subject, content, error)
 
 
 app = webapp2.WSGIApplication([('/', BlogFront),
@@ -355,4 +382,5 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/signup', Register),
 								('/login', Login),
 								('/logout', Logout),
-								('/blog/([0-9]+)', PostPage)], debug = True)
+								('/blog/([0-9]+)', PostPage),
+								('/blog/edit/([0-9]+)', EditBlogEntry)], debug = True)

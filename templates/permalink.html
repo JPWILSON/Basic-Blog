@@ -11,7 +11,7 @@
 
 <div class = "row text-center">{% if username != "Guest"%}
 				<div class = "col-md-3">
-					<button onclick="location.href='/signup'">Edit</button>
+					<button onclick="location.href='/blog/edit/{{post.key().id()}}'">Edit</button>
 				</div>
 				<div class = "col-md-3">
 					<button onclick="location.href='/form'">Delete</button>
