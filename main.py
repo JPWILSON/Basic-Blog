@@ -210,7 +210,8 @@ class PostPage(Handler):
 			return
 		if self.user:
 			self.render("permalink.html", username = self.user.name, post = post)
-		self.render("permalink.html", post = post, username = "Guest")
+		else:
+			self.render("permalink.html", post = post, username = "Guest")
 
 
 class BlogFront(Handler):
