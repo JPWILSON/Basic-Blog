@@ -163,8 +163,9 @@ class Handler(webapp2.RequestHandler):
 	def write(self, *a, **kw):
 		self.response.out.write(*a, **kw)
 
-	def render_str(self, *template, **params):
-		t = jinja_env.get_template(*template)
+	def render_str(self, template, **params):
+		params['user'] = self.user
+		t = jinja_env.get_template(template)
 		return t.render(**params)
 
 	def render(self, *template, **params):
@@ -219,7 +220,7 @@ class BlogFront(Handler):
 ########    ---REGISTRATION PAGE----
 class SignUp(Handler):
 	def get(self):
-		self.render("signup.html")
+			self.render("signup.html")
 
 	def post(self):
 		have_error = False #If make it through the whole page with no errors,
@@ -266,6 +267,10 @@ class Register(SignUp):
 		if u:
 			msg = 'Unfortunately this username already exists'
 			self.render('signup.html', name_error = msg)
+		#dont let the username be 'Guest', so that I can hide buttons on permalinks:
+		elif self.username == "Guest":
+			msg = 'Guest is not a username you can use, sadly'
+			self.render('signup.html', name_error = msg)
 		else:
 			#So, now if not a taken username, can add user to database:
 			u = User.register(self.username, self.password, self.email)
@@ -277,7 +282,9 @@ class Register(SignUp):
 
 class Login(Handler):
 	def get(self):
-		self.render("login.html")
+		if self.user:
+			self.render("login.html", username = self.user.name)
+		self.render("login.html", username = "Guest")
 
 	def post(self):
 		username = self.request.get('username')
@@ -334,8 +341,9 @@ class PostPage(Handler):
 		if not post:
 			self.error(404)
 			return
-
-		self.render("permalink.html", post = post)
+		if self.user:
+			self.render("permalink.html", username = self.user.name, post = post)
+		self.render("permalink.html", post = post, username = "Guest")
 
 
 app = webapp2.WSGIApplication([('/', BlogFront),
