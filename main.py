@@ -377,6 +377,18 @@ class EditBlogEntry(Handler):
 			error = "To publish a blog post, both a subject, and content is required"
 			self.render_form(author, subject, content, error)
 
+class DeleteBlogEntry(Handler):
+	def get(self, post_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		p = db.get(key)
+		if self.user.name == p.author:
+			p.delete()
+			self.render('homepage.html', p = p)
+			#self.render("homepage.html", username=self.user.name, posts = posts)
+		else:
+			error = "Sorry man, you can only delete your own posts"
+			self.render("login.html", error = error)
+
 
 app = webapp2.WSGIApplication([('/', BlogFront),
 								('/form', FormPage),#Where you make a blog submission
@@ -384,4 +396,5 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/login', Login),
 								('/logout', Logout),
 								('/blog/([0-9]+)', PostPage),
-								('/blog/edit/([0-9]+)', EditBlogEntry)], debug = True)
+								('/blog/edit/([0-9]+)', EditBlogEntry),
+								('/blog/delete/([0-9]+)', DeleteBlogEntry)], debug = True)
