@@ -38,12 +38,42 @@
 					{{ p.render() | safe }}<br><br>
 				</div>
 
-				{% endfor %}
+				
 			
 		</ul>
 	</div>
 	<div class = "col-md-3"></div>
+<div class = "row">	
+	<div class = "col-md-3"></div>
+	<div class = "col-md-6">
+		<div class="post_comment">
+                {% for c in comments %}
+                    {% if c.commentid == p.key().id() %}
+                        <div class="comment">
+                            <br>
+                            <span class="comment_content">
+                                {{ c.comment | safe }}
+                            </span>
+                            <br><br>
+                            <span class="comment_sign">
+                                written by {{ c.commentauthor }} on {{ c.created.strftime("%a %b %d, %Y") }}
+                            </span>
+                            <br><br>
+                            {% if c.commentauthor == user.name %}
+                                <form action="/blog/comment/{{p.key().id()}}" method="get">
+                                    <input type="submit" value="EDIT COMMENT">
+                                </form>
+                            <br><br>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>{% endfor %}<!--  This for is from like 35-->
+	</div>
+	<div class = "col-md-3"></div>
 </div>
+	
+
 
 
 {% endblock %}

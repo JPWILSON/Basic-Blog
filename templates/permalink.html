@@ -20,15 +20,21 @@
 
 				<div class = "col-md-3">
 					<form action='/blog/like/{{post.key().id()}}' method="post">
-                        <input type="submit" value="Likes">{{post.likes}}
+                        <input type="submit" value="Likes {{post.likes}}">
                     </form>
 					<!--<button onclick="location.href='/blog/like/{{post.key().id()}}'">Like{{post.likes}}</button>-->
 				</div>
 
 
 				<div class = "col-md-3">
-					<button onclick="location.href='/form'">Comment</button>
-				</div><br>{% else %}
+					<!---<button onclick="location.href='/form'">Comment</button>-->
+					<form action="/blog/comment/{{post.key().id()}}" method="get">
+                    	<input type="submit" value="LEAVE A COMMENT">
+                	</form>
+				</div><br>
+
+
+				{% else %}
 				<div class = "col-md-12 text-center">
 					<button onclick="location.href='/signup'">Login to Like/ Comment</button>
 				</div>

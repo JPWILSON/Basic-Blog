@@ -197,7 +197,6 @@ class Handler(webapp2.RequestHandler):
 		uid = self.read_secure_cookie('user_id')
 		self.user = uid and User.by_id(int(uid))
 
-
 #########      ---- MAIN PAGE ----
 #    ---- PARTICULAR POST -----
 
@@ -220,10 +219,11 @@ class BlogFront(Handler):
 		#posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC LIMIT 10")
 		#Now, will use google's procedural language:
 		posts = BlogEntry.all().order('-timestamp')
+		comments = db.GqlQuery("SELECT * FROM Comment ORDER BY created DESC LIMIT 10")
 		if self.user:
-			self.render("homepage.html", username=self.user.name, posts = posts)
+			self.render("homepage.html", username=self.user.name, posts = posts, comments = comments)
 		else:
-			self.render("homepage.html", username="Guest", posts = posts)
+			self.render("homepage.html", username="Guest", posts = posts, comments = comments)
 
 '''
 		username = self.request.get("name")
@@ -409,6 +409,45 @@ class DeleteBlogEntry(Handler):
 			error = "Sorry man, you can only delete your own posts"
 			self.render("login.html", error = error)
 
+class Comment(db.Model):
+    """class that creates the basic database specifics for a comment"""
+    comment = db.TextProperty(required=True)
+    commentauthor = db.StringProperty(required=True)
+    commentid = db.IntegerProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+
+
+class CreateComment(Handler):
+    """class that handles a new comment"""
+    def get(self, post_id):
+        key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+        p = db.get(key)
+        q = int(p.key().id())
+        c = db.GqlQuery("SELECT comment FROM Comment WHERE commentid = :q", q=q)
+
+        if self.user:
+            if self.user.name != p.author:
+                self.render("comment.html", p=p, subject=p.subject, content=p.content, commentxist=c)
+            else:
+                error = "You can not comment your own posts!"
+                self.redirect('/', message=error)
+
+    def post(self, post_id):
+        key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+        p = db.get(key)
+
+        commentin = self.request.get("comment")
+        comment = commentin.replace('\n', '<br>')
+        commentauthor = self.user.name
+        commentid = int(p.key().id())
+
+        if comment and commentid:
+            c = Comment(parent = blog_key(), comment=comment, commentauthor=commentauthor, commentid = commentid)
+            c.put()
+            self.redirect("/")
+        else:
+            error = "You have to enter text in the comment field!"
+            self.render("comment.html", p=p, subject=p.subject, content=p.content, error=error)
 
 app = webapp2.WSGIApplication([('/', BlogFront),
 								('/form', FormPage),#Where you make a blog submission
@@ -418,4 +457,5 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/blog/([0-9]+)', PostPage),
 								('/blog/edit/([0-9]+)', EditBlogEntry),
 								('/blog/delete/([0-9]+)', DeleteBlogEntry),
-								('/blog/like/([0-9]+)', Like)], debug = True)
+								('/blog/like/([0-9]+)', Like),
+								('/blog/comment/([0-9]+)', CreateComment)], debug = True)
