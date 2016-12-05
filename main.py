@@ -144,8 +144,8 @@ class BlogEntry(db.Model):
 	content = db.TextProperty(required = True)
 	timestamp = db.DateTimeProperty(auto_now_add = True)
 	last_modified = db.DateTimeProperty(auto_now = True)
-	likers = db.IntegerProperty()
-	likes = db.StringListProperty()
+	likes = db.IntegerProperty()
+	likers = db.StringListProperty()
 
 	def render(self):
 		self._render_text = self.content.replace('\n', '<br>')
