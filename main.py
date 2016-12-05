@@ -417,7 +417,7 @@ class Comment(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
 
 
-class CreateComment(Handler):
+class Comment(Handler):
     """class that handles a new comment"""
     def get(self, post_id):
         key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
@@ -426,11 +426,9 @@ class CreateComment(Handler):
         c = db.GqlQuery("SELECT comment FROM Comment WHERE commentid = :q", q=q)
 
         if self.user:
-            if self.user.name != p.author:
-                self.render("comment.html", p=p, subject=p.subject, content=p.content, commentxist=c)
-            else:
-                error = "You can not comment your own posts!"
-                self.redirect('/', message=error)
+            self.render("comment.html", p=p, subject=p.subject, content=p.content, commentxist=c)
+        else:
+            self.redirect('/')
 
     def post(self, post_id):
         key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
@@ -458,4 +456,4 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/blog/edit/([0-9]+)', EditBlogEntry),
 								('/blog/delete/([0-9]+)', DeleteBlogEntry),
 								('/blog/like/([0-9]+)', Like),
-								('/blog/comment/([0-9]+)', CreateComment)], debug = True)
+								('/blog/comment/([0-9]+)', Comment)], debug = True)

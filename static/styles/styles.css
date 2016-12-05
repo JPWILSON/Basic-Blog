@@ -5,8 +5,8 @@ iii. More specific classes */
 /*.borders{
 	border: solid red 1px;
 }*/
-div{
-	border: solid red 1px;
+.commentbox{
+	border: solid grey 0.5px;
 }
 body{
 	font-family: 'Lato', sans-serif;
@@ -55,6 +55,10 @@ hr{
 
 .content{
 	width: 80%;
+	height: 300px;
+}
+.content2{
+	width: 450px;
 	height: 300px;
 }
 
