@@ -16,9 +16,16 @@
 				<div class = "col-md-3">
 					<button onclick="location.href='/blog/delete/{{post.key().id()}}'">Delete</button>
 				</div>
+
+
 				<div class = "col-md-3">
-					<button onclick="location.href='/logout'">Like</button>
+					<form action='/blog/like/{{post.key().id()}}' method="post">
+                        <input type="submit" value="Likes">{{post.likes}}
+                    </form>
+					<!--<button onclick="location.href='/blog/like/{{post.key().id()}}'">Like{{post.likes}}</button>-->
 				</div>
+
+
 				<div class = "col-md-3">
 					<button onclick="location.href='/form'">Comment</button>
 				</div><br>{% else %}
@@ -36,7 +43,7 @@
 
 				<div class= "text-center">
 					{{ post.render() | safe }}<br><br>
-				</div>
+				</div>{{error}}
 
 			
 		</ul>

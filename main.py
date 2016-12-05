@@ -319,6 +319,24 @@ class Logout(Handler):
 		self.logout()
 		self.redirect('/')
 
+class Like(Handler):
+	def post(self, post_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		p = db.get(key)
+		post_id = str(p.key().id())
+
+		if self.user.name != p.author:
+			if self.user.name not in p.likers:
+				p.likes = p.likes + 1
+				p.likers.append(self.user.name)
+				p.put()
+				self.redirect("/blog/%s" % post_id)
+			else:
+				#error = "You've already liked this post"
+				self.redirect("/blog/%s" % post_id)
+		else:
+			#error = "You cannot like your own post"
+			self.redirect("/blog/%s" % post_id)
 
 #Blog post page
 class FormPage(Handler):
@@ -339,9 +357,11 @@ class FormPage(Handler):
 		subject = self.request.get("subject")
 		content = self.request.get("content")
 		author = self.user.name
+		likes = 0
+
 		if subject and content:
 			b = BlogEntry(parent = blog_key(), author=author, 
-						  subject = subject, content = content)
+						  subject = subject, content = content, likes = likes)
 			b.put()
 			post_id = str(b.key().id())
 			self.redirect("/blog/%s" % post_id)
@@ -397,4 +417,5 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/logout', Logout),
 								('/blog/([0-9]+)', PostPage),
 								('/blog/edit/([0-9]+)', EditBlogEntry),
-								('/blog/delete/([0-9]+)', DeleteBlogEntry)], debug = True)
+								('/blog/delete/([0-9]+)', DeleteBlogEntry),
+								('/blog/like/([0-9]+)', Like)], debug = True)
