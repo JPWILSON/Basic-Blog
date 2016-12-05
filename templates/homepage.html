@@ -47,21 +47,21 @@
 	<div class = "col-md-6">
 		<div class="post_comment">
                 {% for c in comments %}
-                    {% if c.commentid == p.key().id() %}
+                    <!--{% if c.commentid == p.key().id() %}-->
                         <div class="comment">
 						<div class = "commentbox">Comment: 	{{ c.comment | safe }}</div>
                             <span class="comment_sign">
-                                Comment by {{ c.commentauthor }} on {{ c.created.strftime("%a %b %d, %Y") }}
+                                Comment made on {{ c.created.strftime("%a %b %d, %Y") }}
                             </span>
                             <br><br>
                             {% if c.commentauthor == user.name %}
-                                <form action="/blog/comment/{{p.key().id()}}" method="get">
-                                    <input type="submit" value="EDIT COMMENT">
+                                <form action="/blog/edit/{{c.key().id()}}" method="get">
+                                    <input type="submit" value="Edit">
                                 </form>
-                            <br><br>
                             {% endif %}
+                            <br><br>
                         </div>
-                    {% endif %}
+                    <!--{% endif %}-->
                 {% endfor %}
             </div>{% endfor %}<!--  This for is from like 35-->
 	</div>

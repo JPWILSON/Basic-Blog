@@ -3,25 +3,15 @@
 {% block content %}
     {{ p.render() | safe }}
     <div class="post_footer">
-        Commentor: {{ p.author }}
+        Commentor: {{ c.commentauthor }}
     </div>
-    <h2>Previous Comments:</h2>
-    <div class = "row">
-        <div class = "col-md-1"></div>
-        <div class = "col-md-10">
-            {% for cp in all_comments %}
-            <div>{{cp.comment}}</div>
-            {% endfor %}
-        </div>
-        <div class = "col-md-1"></div>
-    </div>
-    <h2>Your Comment:</h2>
+    <h2>Edit Comment:</h2>
     <div class = "row">
         <div class = "col-md-1"></div>
         <div class = "col-md-10">
             <form method="post">
                 <label>
-                    <textarea name="comment" class="content2" value="{{comment}}"></textarea>
+                    <textarea name="comment" class="content2" value="{{comment}}">{{comment}}</textarea>
                 </label>
                 <div class="error">{{error}}</div>
                 <input type="submit" value="Comment!">
