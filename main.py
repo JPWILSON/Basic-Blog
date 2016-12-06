@@ -266,7 +266,7 @@ class PostPage(Handler):
 	def get(self, post_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
-		comments = Comment.all().filter('post_id =', post.key().id()).order('-created')
+		comments = Comment.all().filter('post_id =', int(post_id)).order('-created')
 		if not post:
 			self.error(404)
 			return
