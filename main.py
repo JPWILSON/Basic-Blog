@@ -233,6 +233,32 @@ class CommentHandler(Handler):
         else:
             error = "To publish a blog post, you must be signed in and comment content is required in text area"
             self.render("comment.html", p=post, all_comments = all_comments, error = error, comment_prev = comment)
+
+class EditComment(Handler):
+	def get(self, post_id, comment_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		post = db.get(key)
+
+		ckey = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
+		c = db.get(ckey)
+		self.render("edit_comment.html", c=c ,comment = c.comment)
+
+	def post(self, post_id, comment_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		post = db.get(key)
+
+		ckey = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
+		c = db.get(ckey)
+		comment = self.request.get("comment")
+		# Obvisouly this is the author, author = self.user.name
+		if comment:
+			c.comment = comment
+			c.put()
+			self.redirect("/blog/%s" % post_id)
+		else:
+			error = "To EDIT and then publish a comment, content is required"
+			self.render("edit_comment.html", c=c ,comment = c.comment)
+
 #########      ---- MAIN PAGE ----
 #    ---- PARTICULAR POST -----
 
@@ -451,9 +477,6 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/blog/([0-9]+)/edit', EditBlogEntry),
 								('/blog/([0-9]+)/delete', DeleteBlogEntry),
 								('/blog/([0-9]+)/like', Like),
-								('/blog/([0-9]+)/comment', CommentHandler)], debug = True)
+								('/blog/([0-9]+)/comment', CommentHandler),
+								('/blog/([0-9]+)/comment/([0-9]+)/edit', EditComment)], debug = True)
 #Investigate trailing slashes
-'''
-
-								('/blog/([0-9]+)/comment/([0-9]+)/edit)', EditComment
-'''

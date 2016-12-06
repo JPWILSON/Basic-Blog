@@ -66,6 +66,11 @@
 				<div class= "text-center">
 					<h4>Comment by: {{ c.commentauthor }} on {{c.created.strftime("%b %d, %Y")}}</h4>
 					<p>{{c.comment}}</p><br>
+					{% if username == c.commentauthor %}
+						<form action="/blog/{{post.key().id()}}/comment/{{c.key().id()}}/edit" method="get">
+	                    	<input type="submit" value="Edit Comment">
+	                	</form><br>
+	                {% endif %}
 				</div><br>
 			{% endfor %}
 			
