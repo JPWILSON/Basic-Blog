@@ -11,15 +11,15 @@
 
 <div class = "row text-center">{% if username != "Guest"%}
 				<div class = "col-md-3">
-					<button onclick="location.href='/blog/edit/{{post.key().id()}}'">Edit</button>
+					<button onclick="location.href='/blog/{{post.key().id()}}/edit'">Edit</button>
 				</div>
 				<div class = "col-md-3">
-					<button onclick="location.href='/blog/delete/{{post.key().id()}}'">Delete</button>
+					<button onclick="location.href='/blog/{{post.key().id()}}/delete'">Delete</button>
 				</div>
 
 
 				<div class = "col-md-3">
-					<form action='/blog/like/{{post.key().id()}}' method="post">
+					<form action='/blog/{{post.key().id()}}/like' method="post">
                         <input type="submit" value="Likes {{post.likes}}">
                     </form>
 					<!--<button onclick="location.href='/blog/like/{{post.key().id()}}'">Like{{post.likes}}</button>-->
@@ -28,7 +28,7 @@
 
 				<div class = "col-md-3">
 					<!---<button onclick="location.href='/form'">Comment</button>-->
-					<form action="/blog/comment/{{post.key().id()}}" method="get">
+					<form action="/blog/{{post.key().id()}}/comment" method="get">
                     	<input type="submit" value="Comment">
                 	</form>
 				</div><br>
@@ -51,6 +51,23 @@
 					{{ post.render() | safe }}<br><br>
 				</div>{{error}}
 
+			
+		</ul>
+	</div>
+	<div class = "col-md-3"></div>
+</div>
+
+<div class = "row">
+	<div class = "col-md-3"></div>
+	<div class = "col-md-6 ">
+		<h2>Comments:</h2>
+		<ul class = "text-center">
+			{% for c in comments %}
+				<div class= "text-center">
+					<h4>Comment by: {{ c.commentauthor }} on {{c.created.strftime("%b %d, %Y")}}</h4>
+					<p>{{c.comment}}</p><br>
+				</div><br>
+			{% endfor %}
 			
 		</ul>
 	</div>

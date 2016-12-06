@@ -117,8 +117,7 @@ class User(db.Model):
 		return u
 		#This would be similar to:
 		#Select * FROM user WHERE name = name
-#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")?not exactly
-		
+#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")?not exactly		
 
 	@classmethod
 	def register(cls, name, pw, email = None):
@@ -202,63 +201,38 @@ class Comment(db.Model):
     """class that creates the basic database specifics for a comment"""
     comment = db.TextProperty(required=True)
     commentauthor = db.StringProperty(required=True)
-    commentid = db.IntegerProperty(required=True)
+    post_id = db.IntegerProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
 
 class CommentHandler(Handler):
     def get(self, post_id):
         key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
-        p = db.get(key)
-        commentid = int(p.key().id())
-        all_comments = Comment.all().filter('commentid =', commentid).order('-created')
+        post = db.get(key)
+        all_comments = Comment.all().filter('post_id =', post_id).order('-created')
 
         if self.user:
-            self.render("comment.html", p=p, all_comments = all_comments)
+        	if all_comments:
+        		self.render("comment.html", p=post, all_comments = all_comments)
+        	else:
+        		self.render("comment.html", p=post)
         else:
             error = "You need to be signed in to comment on a post"
             redirect('/signup', error = error)
 
     def post(self, post_id):
         key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
-        p = db.get(key)
-        commentid = int(p.key().id())
+        post = db.get(key)
+        post_id = int(post_id)
         comment = self.request.get("comment")
         formatted_comment = comment.replace('\n', '<br>')
-        all_comments = Comment.all().filter('commentid =', commentid).order('-created')
+        all_comments = Comment.all().filter('post_id =', post_id).order('-created')
         if self.user and comment: 
-            b = Comment(parent = blog_key(), comment = formatted_comment, commentauthor = p.author, commentid=commentid, all_comments = all_comments)
-            b.put()
-            #
-            self.redirect("/")
+            c = Comment(parent = blog_key(), comment = formatted_comment, commentauthor = self.user.name, post_id = post_id)
+            c.put()
+            self.redirect("/blog/%s" % post_id)
         else:
             error = "To publish a blog post, you must be signed in and comment content is required in text area"
-            self.render("comment.html", p=p, error = error)
-
-class EditComment(Handler):
-	def get(self, comment_id):
-		key = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
-		c = db.get(key)
-
-		if self.user.name == c.commentauthor:
-			self.render("edit_comment.html", c=c ,comment = c.comment)
-		else:
-			error = "You can only edit your own comment, and you have to be signed in to do that"
-			self.render("login.html", error = error)
-
-	def post(self, comment_id):
-		key = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
-		c = db.get(key)
-
-		comment = self.request.get("comment")
-		# Obvisouly this is the author, author = self.user.name
-		if comment:
-			c.comment = comment
-			c.put()
-			comment_id = str(p.key().id())
-			self.redirect("/blog/comment/edit/%s" % comment_id)
-		else:
-			error = "To publish a comment, content is required"
-			self.render("/blog/comment/edit/%s" % comment_id)
+            self.render("comment.html", p=post, all_comments = all_comments, error = error, comment_prev = comment)
 #########      ---- MAIN PAGE ----
 #    ---- PARTICULAR POST -----
 
@@ -266,13 +240,14 @@ class PostPage(Handler):
 	def get(self, post_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
+		comments = Comment.all().filter('post_id =', post.key().id()).order('-created')
 		if not post:
 			self.error(404)
 			return
 		if self.user:
-			self.render("permalink.html", username = self.user.name, post = post)
+			self.render("permalink.html", username = self.user.name, post = post, comments = comments)
 		else:
-			self.render("permalink.html", post = post, username = "Guest")
+			self.render("permalink.html", username = "Guest", post = post, comments = comments)
 
 
 class BlogFront(Handler):
@@ -281,20 +256,14 @@ class BlogFront(Handler):
 		#posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC LIMIT 10")
 		#Now, will use google's procedural language:
 		posts = BlogEntry.all().order('-timestamp')
-		comments = db.GqlQuery("SELECT * FROM Comment ORDER BY created DESC LIMIT 10")
+		#comments = db.GqlQuery("SELECT * FROM Comment ORDER BY created DESC LIMIT 10")
+		#Rather use the filter plus .all() syntax...
 		if self.user:
-			self.render("homepage.html", username=self.user.name, posts = posts, comments = comments)
+			self.render("homepage.html", username=self.user.name, posts = posts)#, comments = comments)
 		else:
-			self.render("homepage.html", username="Guest", posts = posts, comments = comments)
+			self.render("homepage.html", username="Guest", posts = posts)#, comments = comments)
 
-'''
-		username = self.request.get("name")
-		if valid_username(username):
-			self.render("homepage.html", username=username, posts = posts)
 
-		else:
-			self.render("homepage.html", posts = posts, username="Guest")
-'''
 ########    ---REGISTRATION PAGE----
 class SignUp(Handler):
 	def get(self):
@@ -479,8 +448,12 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/login', Login),
 								('/logout', Logout),
 								('/blog/([0-9]+)', PostPage),
-								('/blog/edit/([0-9]+)', EditBlogEntry),
-								('/blog/delete/([0-9]+)', DeleteBlogEntry),
-								('/blog/like/([0-9]+)', Like),
-								('/blog/comment/([0-9]+)', CommentHandler),
-								('/blog/comment/edit/([0-9]+)', EditComment)], debug = True)
+								('/blog/([0-9]+)/edit', EditBlogEntry),
+								('/blog/([0-9]+)/delete', DeleteBlogEntry),
+								('/blog/([0-9]+)/like', Like),
+								('/blog/([0-9]+)/comment', CommentHandler)], debug = True)
+#Investigate trailing slashes
+'''
+
+								('/blog/([0-9]+)/comment/([0-9]+)/edit)', EditComment
+'''

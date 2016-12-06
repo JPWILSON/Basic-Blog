@@ -2,16 +2,17 @@
 
 {% block content %}
     {{ p.render() | safe }}
-    <div class="post_footer">
-        Commentor: {{ p.author }}
-    </div>
     <h2>Previous Comments:</h2>
     <div class = "row">
         <div class = "col-md-1"></div>
         <div class = "col-md-10">
-            {% for cp in all_comments %}
-            <div>{{cp.comment}}</div>
-            {% endfor %}
+            {% if not all_comments %}
+                <h5>No previous comments</h5>
+                {% else %}
+                    {% for c in all_comments %}
+                        <div>{{c.comment}}</div>
+                    {% endfor %}
+            {% endif %}
         </div>
         <div class = "col-md-1"></div>
     </div>
@@ -21,7 +22,7 @@
         <div class = "col-md-10">
             <form method="post">
                 <label>
-                    <textarea name="comment" class="content2" value="{{comment}}"></textarea>
+                    <textarea name="comment" class="content2" value="{{comment}}">{{comment_prev}}</textarea>
                 </label>
                 <div class="error">{{error}}</div>
                 <input type="submit" value="Comment!">
