@@ -11,10 +11,10 @@
 
 <div class = "row text-center">{% if username != "Guest"%}
 				<div class = "col-md-3">
-					<button onclick="location.href='/blog/{{post.key().id()}}/edit'">Edit</button>
+					<button onclick="location.href='/blog/{{post.key().id()}}/edit'">Edit Post</button>
 				</div>
 				<div class = "col-md-3">
-					<button onclick="location.href='/blog/{{post.key().id()}}/delete'">Delete</button>
+					<button onclick="location.href='/blog/{{post.key().id()}}/delete'">Delete Post</button>
 				</div>
 
 
@@ -29,7 +29,7 @@
 				<div class = "col-md-3">
 					<!---<button onclick="location.href='/form'">Comment</button>-->
 					<form action="/blog/{{post.key().id()}}/comment" method="get">
-                    	<input type="submit" value="Comment">
+                    	<input type="submit" value="Comment on Post">
                 	</form>
 				</div><br>
 

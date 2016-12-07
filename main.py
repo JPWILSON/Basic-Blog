@@ -469,6 +469,7 @@ class DeleteBlogEntry(Handler):
 
 
 app = webapp2.WSGIApplication([('/', BlogFront),
+								('/home', BlogFront),
 								('/form', FormPage),#Where you make a blog submission
 								('/signup', Register),
 								('/login', Login),
