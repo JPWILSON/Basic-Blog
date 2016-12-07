@@ -5,6 +5,10 @@ iii. More specific classes */
 /*.borders{
 	border: solid red 1px;
 }*/
+
+.comment_border{
+	border: solid grey 0.25px;
+}
 .commentbox{
 	border: solid grey 0.5px;
 }

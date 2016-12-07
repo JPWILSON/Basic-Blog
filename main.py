@@ -241,7 +241,7 @@ class EditComment(Handler):
 
 		ckey = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
 		c = db.get(ckey)
-		self.render("edit_comment.html", c=c ,comment = c.comment)
+		self.render("edit_comment.html", c=c ,comment = c.comment, post= post)
 
 	def post(self, post_id, comment_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
@@ -258,6 +258,24 @@ class EditComment(Handler):
 		else:
 			error = "To EDIT and then publish a comment, content is required"
 			self.render("edit_comment.html", c=c ,comment = c.comment)
+
+class DeleteComment(Handler):
+	def get(self, post_id, comment_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		post = db.get(key)
+
+		ckey = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
+		c = db.get(ckey)
+
+		if self.user.name == c.commentauthor:
+			c.delete()
+			self.redirect("/blog/%s" % post_id)
+		else:
+			error = "Sorry man, you can only delte your own comments"
+			self.render('login.html', error)
+
+
+
 
 #########      ---- MAIN PAGE ----
 #    ---- PARTICULAR POST -----
