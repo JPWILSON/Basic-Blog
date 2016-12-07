@@ -13,119 +13,125 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
-'''
-This blog must have: 
-1. Front page that lists entries 
-2. Form to submit new entries 
-3. Permalink page for entries 
-'''
-import os 
-import re  #This is the regular expression library!
+import os
+import re
 import webapp2
 import jinja2
 import string
 import random
-import hmac #for security, safer than using hashlib
+# For security, safer than using hashlib
+import hmac
 import hashlib
-from google.appengine.ext import db 
+from google.appengine.ext import db
 
 
 # This is all helper stuff....
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = True)
+jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
+	                           autoescape=True)
 
-
-#REGEX:
+# REGEX:
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{5,20}$")
 PASS_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
 
-#FUNCTINOS FOR CHECKING VALID INPUTS:
 
 def valid_username(username):
-		return username and USER_RE.match(username)
-#The line above means the same as:
-#	If there is a username, & it matches this regex, then return True 
+	return username and USER_RE.match(username)
+
 
 def valid_password(password):
 		return password and PASS_RE.match(password)
+
 
 def valid_email(email):
 		return not email or EMAIL_RE.match(email)
 
 
-#SECURITY (hasing, passwords, salts, etc)
-#safer, hmac hashing function:
+# SECURITY (hasing, passwords, salts, etc)
+# safer, hmac hashing function:
+
+
 def hash_str(s):
 	return hmac.new(secret, s).hexdigest()
+
 
 def make_secure_val(s):
 	return "%s|%s" % (s, hash_str(s))
 
-#This uses the above 2 fns to determine is the value entered is correct
-#(eg, did the password entered match that originally created)
+# This uses the above 2 fns to determine is the value entered is correct
+# (eg, did the password entered match that originally created)
+
+
 def check_secure_val(h):
 	s = h.split("|")[0]
 	if h == make_secure_val(s):
 		return s
 
-#SECRET:
-secret = "super_secrety_secret" 
+# SECRET:
+secret = "super_secrety_secret"
 
-#Adding the salt for security:
-#How to implement password protection
+# Adding the salt for security:
+# How to implement password protection
+
+
 def make_salt():
 	salt = ''.join([random.choice(string.letters) for i in range(5)])
 	return salt
 
-#Now, making hash with the salt:
-def make_hash_pw(name, pw, salt = None):
+# Now, making hash with the salt:
+
+
+def make_hash_pw(name, pw, salt=None):
 	if not salt:
 		salt = make_salt()
 	h = hashlib.sha256(name+pw+salt).hexdigest()
 	return "%s,%s" % (salt, h)
-	#return "%s,%s" % (hf, s)
 
-#Now it needs to be verified (and actually used). That is, 
-#when user enters name & pw:
+
+# Now it needs to be verified (and actually used)
+# That is, when user enters name & pw:
+
+
 def valid_pw(name, pw, h):
-	#salt = h.split(",")[1]
 	salt = h.split(",")[0]
 	return h == make_hash_pw(name, pw, salt)
 
-#DB ENTRIES OF USERS:
-def users_key(group= 'default'):
+# DB ENTRIES OF USERS:
+
+
+def users_key(group='default'):
 	return db.Key.from_path('users', group)
 
-#Now, the user object which will be stored in the google datastre
+# Now, the user object which will be stored in the google datastre
+
+
 class User(db.Model):
-	name = db.StringProperty(required = True)
-	#We dont store pws in our db, we store hash of passwords...
-	pw_hash = db.StringProperty(required = True)
+	name = db.StringProperty(required=True)
+	pw_hash = db.StringProperty(required=True)
 	email = db.StringProperty()
-#These are just methods for getting a user out of the db,
+# These are just methods for getting a user out of the db,
 # by their name or their id. 
 	
 	@classmethod
 	def by_id(cls, uid):
-		return cls.get_by_id(uid, parent = users_key())
+		return cls.get_by_id(uid, parent=users_key())
 
 	@classmethod
 	def by_name(cls, name):
 		u = cls.all().filter('name =', name).get()
 		return u
-		#This would be similar to:
-		#Select * FROM user WHERE name = name
-#Or: posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC")?not exactly		
+# This would be similar to:
+# Select * FROM user WHERE name = name
+# Or: posts = db.GqlQuery("SELECT * FROM
+# BlogEntry ORDER BY timestamp DESC")?not exactly		
 
 	@classmethod
-	def register(cls, name, pw, email = None):
+	def register(cls, name, pw, email=None):
 		pw_hash = make_hash_pw(name, pw)
-		return cls(parent = users_key(),
-					name = name, 
-					pw_hash = pw_hash,
-					email = email)
+		return cls(parent=users_key(), 
+			   name=name, pw_hash=pw_hash, 
+			   email=email)
 
 	@classmethod
 	def user_object_login(cls, name, pw):
@@ -133,33 +139,37 @@ class User(db.Model):
 		if u and valid_pw(name, pw, u.pw_hash):
 			return u
 
-#DB BLOG entries:  
+# DB BLOG entries:  
+
+
 def blog_key(name='dafault'):
 	return db.Key.from_path('blogs', name)
 
+
 class BlogEntry(db.Model):
 	author = db.StringProperty(required=True)
-	subject = db.StringProperty(required = True)
-	content = db.TextProperty(required = True)
-	timestamp = db.DateTimeProperty(auto_now_add = True)
-	last_modified = db.DateTimeProperty(auto_now = True)
+	subject = db.StringProperty(required=True)
+	content = db.TextProperty(required=True)
+	timestamp = db.DateTimeProperty(auto_now_add=True)
+	last_modified = db.DateTimeProperty(auto_now=True)
 	likes = db.IntegerProperty()
 	likers = db.StringListProperty()
 
 	def render(self):
 		self._render_text = self.content.replace('\n', '<br>')
-		return render_str("post.html", p = self)
+		return render_str("post.html", p=self)
 
 	'''
 	def get_author(self):
 		author  = User.by_id(self.user_id)
 		return author.name'''
-###Careful with this.....
+
+
 def render_str(*template, **params):
 	t = jinja_env.get_template(*template)
 	return t.render(**params)
 
-#Defining the handler function:
+
 class Handler(webapp2.RequestHandler):
 	def write(self, *a, **kw):
 		self.response.out.write(*a, **kw)
@@ -173,7 +183,7 @@ class Handler(webapp2.RequestHandler):
 		return self.write(self.render_str(*template, **params))
 
 
-	#Now, add code to set a cookie (go check notes on expiration)
+# Now, add code to set a cookie (go check notes on expiration)
 	def set_secure_cookie(self, name, val):
 		cookie_val = make_secure_val(val)
 		self.response.headers.add_header(
@@ -183,8 +193,7 @@ class Handler(webapp2.RequestHandler):
 	def read_secure_cookie(self, name):
 		cookie_val = self.request.cookies.get(name)
 		return cookie_val and check_secure_val(cookie_val)
-#Change this to the second login_name? Nope- change the other login
-# user_object_login
+
 	def login(self, user):
 		self.set_secure_cookie('user_id', str(user.key().id()))
 
@@ -197,61 +206,68 @@ class Handler(webapp2.RequestHandler):
 		self.user = uid and User.by_id(int(uid))
 
 # -----COMMENTS -----
+
+
 class Comment(db.Model):
-    """class that creates the basic database specifics for a comment"""
-    comment = db.TextProperty(required=True)
-    commentauthor = db.StringProperty(required=True)
-    post_id = db.IntegerProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
+	comment = db.TextProperty(required=True)
+	commentauthor = db.StringProperty(required=True)
+	post_id = db.IntegerProperty(required=True)
+	created = db.DateTimeProperty(auto_now_add=True)
+
 
 class CommentHandler(Handler):
-    def get(self, post_id):
-        key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
-        post = db.get(key)
-        all_comments = Comment.all().filter('post_id =', post_id).order('-created')
+	def get(self, post_id):
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
+		post = db.get(key)
+		all_comments = Comment.all().filter('post_id =', post_id).order('-created')
+		if self.user:
+			if all_comments:
+				self.render("comment.html", p=post, all_comments=all_comments)
+			else:
+				self.render("comment.html", p=post)
+		else:
+			error = "You need to be signed in to comment on a post"
+			redirect('/signup', error=error)
 
-        if self.user:
-        	if all_comments:
-        		self.render("comment.html", p=post, all_comments = all_comments)
-        	else:
-        		self.render("comment.html", p=post)
-        else:
-            error = "You need to be signed in to comment on a post"
-            redirect('/signup', error = error)
-
-    def post(self, post_id):
-        key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+	def post(self, post_id):
+		key = db.Key.from_path('BlogEntry', 
+			  int(post_id), parent=blog_key())
         post = db.get(key)
         post_id = int(post_id)
         comment = self.request.get("comment")
         formatted_comment = comment.replace('\n', '<br>')
         all_comments = Comment.all().filter('post_id =', post_id).order('-created')
         if self.user and comment: 
-            c = Comment(parent = blog_key(), comment = formatted_comment, commentauthor = self.user.name, post_id = post_id)
+            c = Comment(parent=blog_key(), comment=formatted_comment,
+             commentauthor=self.user.name, post_id=post_id)
             c.put()
             self.redirect("/blog/%s" % post_id)
         else:
-            error = "To publish a blog post, comment content is required in the text area (& you must be signed in and )"
-            self.render("comment.html", p=post, all_comments = all_comments, error = error, comment_prev = comment)
+            error = "To publish a blog post, comment content "+
+            "is required in the text area (& you must be signed in and )"
+            self.render("comment.html", p=post, 
+            	        all_comments=all_comments, 
+            	        error=error, comment_prev=comment)
+
 
 class EditComment(Handler):
 	def get(self, post_id, comment_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
 
-		ckey = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
+		ckey = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
 		c = db.get(ckey)
 		if self.user and self.user.name == c.commentauthor:
-			self.render("edit_comment.html", c=c ,comment = c.comment, post= post)
+			self.render("edit_comment.html", c=c ,comment=c.comment, post=post)
 		else:
 			error = "You can only edit your own comment, and you have to be signed in to do that"
-			self.render("login.html", error = error)
+			self.render("login.html", error=error)
 
 	def post(self, post_id, comment_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
 
-		ckey = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
+		ckey = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
 		c = db.get(ckey)
 		comment = self.request.get("comment")
 		# Obvisouly this is the author, author = self.user.name
@@ -262,17 +278,18 @@ class EditComment(Handler):
 				self.redirect("/blog/%s" % post_id)
 			else:
 				error = "To EDIT and then publish a comment, content is required"
-				self.render("edit_comment.html", c=c ,comment = c.comment)
+				self.render("edit_comment.html", c=c ,comment=c.comment)
 		else:
 			error = "You can only edit your own comment, and you have to be signed in to do that"
 			self.render("login.html", error = error)
 
+
 class DeleteComment(Handler):
 	def get(self, post_id, comment_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
 
-		ckey = db.Key.from_path('Comment', int(comment_id), parent = blog_key())
+		ckey = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
 		c = db.get(ckey)
 
 		if self.user.name == c.commentauthor:
@@ -285,8 +302,9 @@ class DeleteComment(Handler):
 
 
 
-#########      ---- MAIN PAGE ----
+# ########      ---- MAIN PAGE ----
 #    ---- PARTICULAR POST -----
+
 
 class PostPage(Handler):
 	def get(self, post_id):
@@ -297,9 +315,9 @@ class PostPage(Handler):
 			self.error(404)
 			return
 		if self.user:
-			self.render("permalink.html", username = self.user.name, post = post, comments = comments)
+			self.render("permalink.html", username=self.user.name, post=post, comments=comments)
 		else:
-			self.render("permalink.html", username = "Guest", post = post, comments = comments)
+			self.render("permalink.html", username="Guest", post=post, comments=comments)
 
 
 class BlogFront(Handler):
@@ -316,21 +334,22 @@ class BlogFront(Handler):
 			self.render("homepage.html", username="Guest", posts = posts)#, comments = comments)
 
 
-########    ---REGISTRATION PAGE----
+# #######    ---REGISTRATION PAGE----
+
+
 class SignUp(Handler):
 	def get(self):
 			self.render("signup.html")
 
 	def post(self):
-		have_error = False #If make it through the whole page with no errors,
-		# then render the success page
+		have_error = False
 		self.username = self.request.get("username")
 		self.password = self.request.get("password")
 		self.verify = self.request.get("verify")
 		self.email = self.request.get("email")
 
 		params = dict(username = self.username, email = self.email) 
-		#This is for string substitution back into the signup form
+# This is for string substitution back into the signup form
 
 		#Now, checking the signup form inputs: 
 		if not valid_username(self.username):
@@ -352,38 +371,38 @@ class SignUp(Handler):
 		if have_error:
 			self.render("signup.html", **params)
 		else:
-			#Well, we shouldn't be doing it this way, the username should 
-			#be in a cookie....This is what we did, but change it cause of 
-			#'register' class:self.redirect('/?username=' + username)
 			self.done()
 
 
-#  Register is descended from signup:
+# Register is descended from signup:
+
+
 class Register(SignUp):
 	def done(self):
-		#First, we ensure that the user is not already registered in the db:
+ # First, we ensure that the user is not already registered in the db:
 		u = User.by_name(self.username)
 		if u:
 			msg = 'Unfortunately this username already exists'
-			self.render('signup.html', name_error = msg)
-		#dont let the username be 'Guest', so that I can hide buttons on permalinks:
+			self.render('signup.html', name_error=msg)
+# Dont let the username be 'Guest', so that I can hide buttons on permalinks:
 		elif self.username == "Guest":
 			msg = 'Guest is not a username you can use, sadly'
-			self.render('signup.html', name_error = msg)
+			self.render('signup.html', name_error=msg)
 		else:
-			#So, now if not a taken username, can add user to database:
+# So, now if not a taken username, can add user to database:
 			u = User.register(self.username, self.password, self.email)
 			u.put()
 
 			self.login(u)
-			#All that login does is set the cookie
+# All that login does is set the cookie
 			self.redirect('/')
+
 
 class Login(Handler):
 	def get(self):
 		if self.user:
-			self.render("login.html", username = self.user.name)
-		self.render("login.html", username = "Guest")
+			self.render("login.html", username=self.user.name)
+		self.render("login.html", username="Guest")
 
 	def post(self):
 		username = self.request.get('username')
@@ -395,16 +414,18 @@ class Login(Handler):
 			self.redirect('/')
 		else:
 			msg = 'Invalid login'
-			self.render("login.html", error = msg)
+			self.render("login.html", error=msg)
+
 
 class Logout(Handler):
 	def get(self):
 		self.logout()
 		self.redirect('/')
 
+
 class Like(Handler):
 	def post(self, post_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		p = db.get(key)
 		post_id = str(p.key().id())
 
@@ -415,16 +436,17 @@ class Like(Handler):
 				p.put()
 				self.redirect("/blog/%s" % post_id)
 			else:
-				#error = "You've already liked this post"
+# Error = "You've already liked this post"
 				self.redirect("/blog/%s" % post_id)
 		else:
-			#error = "You cannot like your own post"
 			self.redirect("/blog/%s" % post_id)
 
-#Blog post page
+# Blog post page
+
+
 class FormPage(Handler):
 	def render_form(self, author="", subject="", content="", error=""):
-		self.render("blog_form.html",author =author, subject = subject, content = content, 
+		self.render("blog_form.html",author=author, subject=subject, content=content, 
 			error = error)
 
 	def get(self):
@@ -444,7 +466,7 @@ class FormPage(Handler):
 		if self.user:
 			if subject and content:
 				b = BlogEntry(parent = blog_key(), author=author, 
-							  subject = subject, content = content, likes = likes)
+							  subject = subject, content=content, likes=likes)
 				b.put()
 				post_id = str(b.key().id())
 				self.redirect("/blog/%s" % post_id)
@@ -454,24 +476,25 @@ class FormPage(Handler):
 		else:
 			self.redirect('/signup', name_error="Need to be registered and logged in to make a post")
 
+
 class EditBlogEntry(Handler):
 	def get(self, post_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		p = db.get(key)
 
 		if self.user and self.user.name == p.author:
-			self.render("edit_blog_form.html", p=p, subject=p.subject, content = p.content)
+			self.render("edit_blog_form.html", p=p, subject=p.subject, content=p.content)
 		else:
 			error = "You can only edit your own post, and you have to be signed in to do that"
 			self.render("login.html", error = error)
 
 	def post(self, post_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		p = db.get(key)
 
 		subject = self.request.get("subject")
 		content = self.request.get("content")
-		# Obvisouly this is the author, author = self.user.name
+# Obvisouly this is the author, author = self.user.name
 		if self.user and self.user.name == p.author:
 			if subject and content:
 				p.subject = subject
@@ -484,21 +507,20 @@ class EditBlogEntry(Handler):
 				self.render_form(author, subject, content, error)
 		else:
 			error = "You can only edit your own post, and you have to be signed in to do that"
-			self.render("login.html", error = error)
+			self.render("login.html", error=error)
 
 
 class DeleteBlogEntry(Handler):
 	def get(self, post_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent = blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		p = db.get(key)
 		if self.user and self.user.name == p.author:
 			p.delete()
-			self.render('homepage.html', p = p)
-			#self.render("homepage.html", username=self.user.name, posts = posts)
+			self.render('homepage.html', p=p)
+#s elf.render("homepage.html", username=self.user.name, posts = posts)
 		else:
 			error = "Sorry man, you can only delete your own posts"
-			self.render("login.html", error = error)
-
+			self.render("login.html", error=error)
 
 
 app = webapp2.WSGIApplication([('/', BlogFront),
@@ -513,4 +535,4 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/blog/([0-9]+)/like', Like),
 								('/blog/([0-9]+)/comment', CommentHandler),
 								('/blog/([0-9]+)/comment/([0-9]+)/edit', EditComment)], debug = True)
-#Investigate trailing slashes
+
