@@ -230,23 +230,24 @@ class CommentHandler(Handler):
 			redirect('/signup', error=error)
 
 	def post(self, post_id):
-		key = db.Key.from_path('BlogEntry',
-			  int(post_id), parent=blog_key())
-        post = db.get(key)
-        post_id = int(post_id)
-        comment = self.request.get("comment")
-        formatted_comment = comment.replace('\n', '<br>')
-        all_comments = Comment.all()
-        .filter('post_id =', post_id).order('-created')
-        if self.user and comment:
-            c = Comment(parent=blog_key(), comment=formatted_comment,
-             commentauthor=self.user.name, post_id=post_id)
-            c.put()
-            self.redirect("/blog/%s" % post_id)
-        else:
-            error = "To publish a blog post, comment content "+
-            "is required in the text area (& you must be signed in and )"
-            self.render("comment.html", p=post,
+		key = db.Key.from_path('BlogEntry', 
+			int(post_id), parent=blog_key())
+		post = db.get(key)
+		post_id = int(post_id)
+		comment = self.request.get("comment")
+		formatted_comment = comment.replace('\n', '<br>')
+		all_comments = Comment.all().filter('post_id =',
+			post_id).order('-created')
+		if self.user and comment:
+			c = Comment(parent=blog_key(), comment=formatted_comment, 
+				commentauthor=self.user.name, post_id=post_id)
+			c.put()
+			self.redirect("/blog/%s" % post_id)
+		else:
+			error = ("To publish a blog post, comment content "
+            	"is required in the text area "
+            	"(& you must be signed in and )")
+			self.render("comment.html", p=post,
             	        all_comments=all_comments,
             	        error=error, comment_prev=comment)
 
@@ -261,8 +262,8 @@ class EditComment(Handler):
 		if self.user and self.user.name == c.commentauthor:
 			self.render("edit_comment.html", c=c, comment=c.comment, post=post)
 		else:
-			error = "You can only edit your own comment, "+
-			"and you have to be signed in to do that"
+			error = ("You can only edit your own comment, "
+			"and you have to be signed in to do that")
 			self.render("login.html", error=error)
 
 	def post(self, post_id, comment_id):
@@ -282,8 +283,8 @@ class EditComment(Handler):
 				error = "To EDIT and then publish a comment, content is required"
 				self.render("edit_comment.html", c=c, comment=c.comment)
 		else:
-			error = "You can only edit your own comment,"+
-			" and you have to be signed in to do that"
+			error = ("You can only edit your own comment,"
+			" and you have to be signed in to do that")
 			self.render("login.html", error=error)
 
 
@@ -483,11 +484,11 @@ class EditBlogEntry(Handler):
 		p = db.get(key)
 
 		if self.user and self.user.name == p.author:
-			self.render("edit_blog_form.html", p=p,
+			self.render("edit_blog_form.html", post=p,
 				subject=p.subject, content=p.content)
 		else:
-			error = "You can only edit your own post, "+
-			"and you have to be signed in to do that"
+			error = ("You can only edit your own post, "
+			"and you have to be signed in to do that")
 			self.render("login.html", error = error)
 
 	def post(self, post_id):
@@ -505,12 +506,12 @@ class EditBlogEntry(Handler):
 				post_id = str(p.key().id())
 				self.redirect("/blog/%s" % post_id)
 			else:
-				error = "To publish a blog post, "+
-				"both a subject, and content is required"
+				error = ("To publish a blog post, "
+				"both a subject, and content is required")
 				self.render_form(author, subject, content, error)
 		else:
-			error = "You can only edit your own post,"+
-			" and you have to be signed in to do that"
+			error = ("You can only edit your own post,"
+			" and you have to be signed in to do that")
 			self.render("login.html", error=error)
 
 
