@@ -558,5 +558,6 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/blog/([0-9]+)/delete', DeleteBlogEntry),
 								('/blog/([0-9]+)/like', Like),
 								('/blog/([0-9]+)/comment', CommentHandler),
-								('/blog/([0-9]+)/comment/([0-9]+)/edit', EditComment)], debug=True)
+								('/blog/([0-9]+)/comment/([0-9]+)/edit', EditComment),
+								('/blog/([0-9]+)/comment/([0-9]+)/delete', DeleteComment)], debug=True)
 
