@@ -139,6 +139,7 @@ class User(db.Model):
 		if u and valid_pw(name, pw, u.pw_hash):
 			return u
 
+
 # DB BLOG entries:
 
 
@@ -220,14 +221,17 @@ class CommentHandler(Handler):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
 		all_comments = Comment.all().filter('post_id =', post_id).order('-created')
-		if self.user:
-			if all_comments:
-				self.render("comment.html", p=post, all_comments=all_comments)
-			else:
-				self.render("comment.html", p=post)
+		if post == None:
+			self.redirect('/home')
 		else:
-			error = "You need to be signed in to comment on a post"
-			redirect('/signup', error=error)
+			if self.user:
+				if all_comments:
+					self.render("comment.html", p=post, all_comments=all_comments)
+				else:
+					self.render("comment.html", p=post)
+			else:
+				error = "You need to be signed in to comment on a post"
+				redirect('/signup', error=error)
 
 	def post(self, post_id):
 		key = db.Key.from_path('BlogEntry', 
@@ -238,33 +242,38 @@ class CommentHandler(Handler):
 		formatted_comment = comment.replace('\n', '<br>')
 		all_comments = Comment.all().filter('post_id =',
 			post_id).order('-created')
-		if self.user and comment:
-			c = Comment(parent=blog_key(), comment=formatted_comment, 
-				commentauthor=self.user.name, post_id=post_id)
-			c.put()
-			self.redirect("/blog/%s" % post_id)
+		if post == None:
+			self.redirect('/home')
 		else:
-			error = ("To publish a blog post, comment content "
-            	"is required in the text area "
-            	"(& you must be signed in and )")
-			self.render("comment.html", p=post,
-            	        all_comments=all_comments,
-            	        error=error, comment_prev=comment)
+			if self.user and comment:
+				c = Comment(parent=blog_key(), comment=formatted_comment, 
+					commentauthor=self.user.name, post_id=post_id)
+				c.put()
+				self.redirect("/blog/%s" % post_id)
+			else:
+				error = ("To publish a blog post, comment content "
+	            	"is required in the text area "
+	            	"(& you must be signed in and )")
+				self.render("comment.html", p=post,
+	            	        all_comments=all_comments,
+	            	        error=error, comment_prev=comment)
 
 
 class EditComment(Handler):
 	def get(self, post_id, comment_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
-
 		ckey = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
 		c = db.get(ckey)
-		if self.user and self.user.name == c.commentauthor:
-			self.render("edit_comment.html", c=c, comment=c.comment, post=post)
+		if post == None:
+			self.redirect('/home')
 		else:
-			error = ("You can only edit your own comment, "
-			"and you have to be signed in to do that")
-			self.render("login.html", error=error)
+			if self.user and self.user.name == c.commentauthor:
+				self.render("edit_comment.html", c=c, comment=c.comment, post=post)
+			else:
+				error = ("You can only edit your own comment, "
+					"and you have to be signed in to do that")
+				self.render("login.html", error=error)
 
 	def post(self, post_id, comment_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
@@ -273,35 +282,38 @@ class EditComment(Handler):
 		ckey = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
 		c = db.get(ckey)
 		comment = self.request.get("comment")
-		# Obvisouly this is the author, author = self.user.name
-		if self.user and self.user.name == c.commentauthor:
-			if comment:
-				c.comment = comment
-				c.put()
-				self.redirect("/blog/%s" % post_id)
-			else:
-				error = "To EDIT and then publish a comment, content is required"
-				self.render("edit_comment.html", c=c, comment=c.comment)
+		if post == None:
+			self.redirect('/home')
 		else:
-			error = ("You can only edit your own comment,"
-			" and you have to be signed in to do that")
-			self.render("login.html", error=error)
+			if self.user and self.user.name == c.commentauthor:
+				if comment:
+					c.comment = comment
+					c.put()
+					self.redirect("/blog/%s" % post_id)
+				else:
+					error = "To EDIT and then publish a comment, content is required"
+					self.render("edit_comment.html", c=c, comment=c.comment)
+			else:
+				error = ("You can only edit your own comment,"
+				" and you have to be signed in to do that")
+				self.render("login.html", error=error)
 
 
 class DeleteComment(Handler):
 	def get(self, post_id, comment_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		post = db.get(key)
-
 		ckey = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
 		c = db.get(ckey)
-
-		if self.user.name == c.commentauthor:
-			c.delete()
-			self.redirect("/blog/%s" % post_id)
+		if post == None:
+			self.redirect('/home')
 		else:
-			error = "Sorry man, you can only delte your own comments"
-			self.render('login.html', error)
+			if self.user.name == c.commentauthor:
+				c.delete()
+				self.redirect("/blog/%s" % post_id)
+			else:
+				error = "Sorry man, you can only delte your own comments"
+				self.render('login.html', error)
 
 # ########      ---- MAIN PAGE ----
 #    ---- PARTICULAR POST -----
@@ -482,37 +494,41 @@ class EditBlogEntry(Handler):
 	def get(self, post_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
 		p = db.get(key)
-
-		if self.user and self.user.name == p.author:
-			self.render("edit_blog_form.html", post=p,
-				subject=p.subject, content=p.content)
+		if p == None:
+			self.redirect('/home')
 		else:
-			error = ("You can only edit your own post, "
-			"and you have to be signed in to do that")
-			self.render("login.html", error = error)
+			if self.user and self.user.name == p.author:
+				self.render("edit_blog_form.html", post=p,
+				subject=p.subject, content=p.content)
+			else:
+				error = ("You can only edit your own post, "
+					"and you have to be signed in to do that")
+				self.render("login.html", error = error)
 
 	def post(self, post_id):
 		key = db.Key.from_path('BlogEntry', int(post_id), 
 			parent=blog_key())
 		p = db.get(key)
-		subject = self.request.get("subject")
-		content = self.request.get("content")
-# Obvisouly this is the author, author = self.user.name
-		if self.user and self.user.name == p.author:
-			if subject and content:
-				p.subject = subject
-				p.content = content
-				p.put()
-				post_id = str(p.key().id())
-				self.redirect("/blog/%s" % post_id)
-			else:
-				error = ("To publish a blog post, "
-				"both a subject, and content is required")
-				self.render_form(author, subject, content, error)
+		if p == None:
+			self.redirect('/home')
 		else:
-			error = ("You can only edit your own post,"
-			" and you have to be signed in to do that")
-			self.render("login.html", error=error)
+			subject = self.request.get("subject")
+			content = self.request.get("content")
+			if self.user and self.user.name == p.author:
+				if subject and content:
+					p.subject = subject
+					p.content = content
+					p.put()
+					post_id = str(p.key().id())
+					self.redirect("/blog/%s" % post_id)
+				else:
+					error = ("To publish a blog post, "
+						"both a subject, and content is required")
+					self.render_form(author, subject, content, error)
+			else:
+				error = ("You can only edit your own post,"
+					" and you have to be signed in to do that")
+				self.render("login.html", error=error)
 
 
 class DeleteBlogEntry(Handler):
@@ -520,12 +536,15 @@ class DeleteBlogEntry(Handler):
 		key = db.Key.from_path('BlogEntry', int(post_id),
 			parent=blog_key())
 		p = db.get(key)
-		if self.user and self.user.name == p.author:
-			p.delete()
-			self.render('homepage.html', p=p)
+		if p == None:
+			self.redirect('/home')
 		else:
-			error = "Sorry man, you can only delete your own posts"
-			self.render("login.html", error=error)
+			if self.user and self.user.name == p.author:
+				p.delete()
+				self.render('homepage.html', p=p)
+			else:
+				error = "Sorry man, you can only delete your own posts"
+				self.render("login.html", error=error)
 
 
 app = webapp2.WSGIApplication([('/', BlogFront),
