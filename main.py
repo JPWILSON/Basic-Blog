@@ -111,8 +111,8 @@ class User(db.Model):
 	pw_hash = db.StringProperty(required=True)
 	email = db.StringProperty()
 # These are just methods for getting a user out of the db,
-# by their name or their id. 
-	
+# by their name or their id.
+
 	@classmethod
 	def by_id(cls, uid):
 		return cls.get_by_id(uid, parent=users_key())
@@ -124,13 +124,13 @@ class User(db.Model):
 # This would be similar to:
 # Select * FROM user WHERE name = name
 # Or: posts = db.GqlQuery("SELECT * FROM
-# BlogEntry ORDER BY timestamp DESC")?not exactly		
+# BlogEntry ORDER BY timestamp DESC")?not exactly
 
 	@classmethod
 	def register(cls, name, pw, email=None):
 		pw_hash = make_hash_pw(name, pw)
-		return cls(parent=users_key(), 
-			   name=name, pw_hash=pw_hash, 
+		return cls(parent=users_key(),
+			   name=name, pw_hash=pw_hash,
 			   email=email)
 
 	@classmethod
@@ -139,7 +139,7 @@ class User(db.Model):
 		if u and valid_pw(name, pw, u.pw_hash):
 			return u
 
-# DB BLOG entries:  
+# DB BLOG entries:
 
 
 def blog_key(name='dafault'):
@@ -230,14 +230,15 @@ class CommentHandler(Handler):
 			redirect('/signup', error=error)
 
 	def post(self, post_id):
-		key = db.Key.from_path('BlogEntry', 
+		key = db.Key.from_path('BlogEntry',
 			  int(post_id), parent=blog_key())
         post = db.get(key)
         post_id = int(post_id)
         comment = self.request.get("comment")
         formatted_comment = comment.replace('\n', '<br>')
-        all_comments = Comment.all().filter('post_id =', post_id).order('-created')
-        if self.user and comment: 
+        all_comments = Comment.all()
+        .filter('post_id =', post_id).order('-created')
+        if self.user and comment:
             c = Comment(parent=blog_key(), comment=formatted_comment,
              commentauthor=self.user.name, post_id=post_id)
             c.put()
@@ -245,8 +246,8 @@ class CommentHandler(Handler):
         else:
             error = "To publish a blog post, comment content "+
             "is required in the text area (& you must be signed in and )"
-            self.render("comment.html", p=post, 
-            	        all_comments=all_comments, 
+            self.render("comment.html", p=post,
+            	        all_comments=all_comments,
             	        error=error, comment_prev=comment)
 
 
@@ -258,9 +259,10 @@ class EditComment(Handler):
 		ckey = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
 		c = db.get(ckey)
 		if self.user and self.user.name == c.commentauthor:
-			self.render("edit_comment.html", c=c ,comment=c.comment, post=post)
+			self.render("edit_comment.html", c=c, comment=c.comment, post=post)
 		else:
-			error = "You can only edit your own comment, and you have to be signed in to do that"
+			error = "You can only edit your own comment, "+
+			"and you have to be signed in to do that"
 			self.render("login.html", error=error)
 
 	def post(self, post_id, comment_id):
@@ -278,10 +280,11 @@ class EditComment(Handler):
 				self.redirect("/blog/%s" % post_id)
 			else:
 				error = "To EDIT and then publish a comment, content is required"
-				self.render("edit_comment.html", c=c ,comment=c.comment)
+				self.render("edit_comment.html", c=c, comment=c.comment)
 		else:
-			error = "You can only edit your own comment, and you have to be signed in to do that"
-			self.render("login.html", error = error)
+			error = "You can only edit your own comment,"+
+			" and you have to be signed in to do that"
+			self.render("login.html", error=error)
 
 
 class DeleteComment(Handler):
@@ -299,9 +302,6 @@ class DeleteComment(Handler):
 			error = "Sorry man, you can only delte your own comments"
 			self.render('login.html', error)
 
-
-
-
 # ########      ---- MAIN PAGE ----
 #    ---- PARTICULAR POST -----
 
@@ -315,26 +315,28 @@ class PostPage(Handler):
 			self.error(404)
 			return
 		if self.user:
-			self.render("permalink.html", username=self.user.name, post=post, comments=comments)
+			self.render("permalink.html", username=self.user.name,
+			 post=post, comments=comments)
 		else:
-			self.render("permalink.html", username="Guest", post=post, comments=comments)
+			self.render("permalink.html", username="Guest",
+			 post=post, comments=comments)
 
 
 class BlogFront(Handler):
 	def get(self):
-		#Previously used gql (now, gone back to this):
-		#posts = db.GqlQuery("SELECT * FROM BlogEntry ORDER BY timestamp DESC LIMIT 10")
-		#Now, will use google's procedural language:
 		posts = BlogEntry.all().order('-timestamp')
-		#comments = db.GqlQuery("SELECT * FROM Comment ORDER BY created DESC LIMIT 10")
-		#Rather use the filter plus .all() syntax...
+# comments = db.GqlQuery("SELECT
+# * FROM Comment ORDER BY created DESC LIMIT 10")
+# Rather use the filter plus .all() syntax...
 		if self.user:
-			self.render("homepage.html", username=self.user.name, posts = posts)#, comments = comments)
+			self.render("homepage.html", username=self.
+			user.name, posts=posts)
 		else:
-			self.render("homepage.html", username="Guest", posts = posts)#, comments = comments)
+			self.render("homepage.html", username="Guest",
+			posts=posts)
 
 
-# #######    ---REGISTRATION PAGE----
+# ######    ---REGISTRATION PAGE----
 
 
 class SignUp(Handler):
@@ -348,10 +350,10 @@ class SignUp(Handler):
 		self.verify = self.request.get("verify")
 		self.email = self.request.get("email")
 
-		params = dict(username = self.username, email = self.email) 
+		params = dict(username=self.username, email=self.email)
 # This is for string substitution back into the signup form
 
-		#Now, checking the signup form inputs: 
+# Now, checking the signup form inputs:
 		if not valid_username(self.username):
 			params["name_error"] = "That is not a valid username"
 			have_error = True
@@ -379,7 +381,6 @@ class SignUp(Handler):
 
 class Register(SignUp):
 	def done(self):
- # First, we ensure that the user is not already registered in the db:
 		u = User.by_name(self.username)
 		if u:
 			msg = 'Unfortunately this username already exists'
@@ -389,7 +390,6 @@ class Register(SignUp):
 			msg = 'Guest is not a username you can use, sadly'
 			self.render('signup.html', name_error=msg)
 		else:
-# So, now if not a taken username, can add user to database:
 			u = User.register(self.username, self.password, self.email)
 			u.put()
 
@@ -436,7 +436,6 @@ class Like(Handler):
 				p.put()
 				self.redirect("/blog/%s" % post_id)
 			else:
-# Error = "You've already liked this post"
 				self.redirect("/blog/%s" % post_id)
 		else:
 			self.redirect("/blog/%s" % post_id)
@@ -446,14 +445,15 @@ class Like(Handler):
 
 class FormPage(Handler):
 	def render_form(self, author="", subject="", content="", error=""):
-		self.render("blog_form.html",author=author, subject=subject, content=content, 
-			error = error)
+		self.render("blog_form.html", author=author, subject=subject, 
+			content=content, error=error)
 
 	def get(self):
 		if self.user:
 			self.render_form()
 		else:
-			self.redirect('/signup', name_error="Need to be registered and logged in to make a post")
+			self.redirect('/signup', name_error="Need to"+
+				" be registered and logged in to make a post")
 
 	def post(self):
 		if not self.user:
@@ -465,8 +465,8 @@ class FormPage(Handler):
 		likes = 0
 		if self.user:
 			if subject and content:
-				b = BlogEntry(parent = blog_key(), author=author, 
-							  subject = subject, content=content, likes=likes)
+				b = BlogEntry(parent=blog_key(), author=author, 
+							  subject=subject, content=content, likes=likes)
 				b.put()
 				post_id = str(b.key().id())
 				self.redirect("/blog/%s" % post_id)
@@ -483,15 +483,17 @@ class EditBlogEntry(Handler):
 		p = db.get(key)
 
 		if self.user and self.user.name == p.author:
-			self.render("edit_blog_form.html", p=p, subject=p.subject, content=p.content)
+			self.render("edit_blog_form.html", p=p,
+				subject=p.subject, content=p.content)
 		else:
-			error = "You can only edit your own post, and you have to be signed in to do that"
+			error = "You can only edit your own post, "+
+			"and you have to be signed in to do that"
 			self.render("login.html", error = error)
 
 	def post(self, post_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id), 
+			parent=blog_key())
 		p = db.get(key)
-
 		subject = self.request.get("subject")
 		content = self.request.get("content")
 # Obvisouly this is the author, author = self.user.name
@@ -503,21 +505,23 @@ class EditBlogEntry(Handler):
 				post_id = str(p.key().id())
 				self.redirect("/blog/%s" % post_id)
 			else:
-				error = "To publish a blog post, both a subject, and content is required"
+				error = "To publish a blog post, "+
+				"both a subject, and content is required"
 				self.render_form(author, subject, content, error)
 		else:
-			error = "You can only edit your own post, and you have to be signed in to do that"
+			error = "You can only edit your own post,"+
+			" and you have to be signed in to do that"
 			self.render("login.html", error=error)
 
 
 class DeleteBlogEntry(Handler):
 	def get(self, post_id):
-		key = db.Key.from_path('BlogEntry', int(post_id), parent=blog_key())
+		key = db.Key.from_path('BlogEntry', int(post_id),
+			parent=blog_key())
 		p = db.get(key)
 		if self.user and self.user.name == p.author:
 			p.delete()
 			self.render('homepage.html', p=p)
-#s elf.render("homepage.html", username=self.user.name, posts = posts)
 		else:
 			error = "Sorry man, you can only delete your own posts"
 			self.render("login.html", error=error)
@@ -525,7 +529,7 @@ class DeleteBlogEntry(Handler):
 
 app = webapp2.WSGIApplication([('/', BlogFront),
 								('/home', BlogFront),
-								('/form', FormPage),#Where you make a blog submission
+								('/form', FormPage), # Where you make a blog submission
 								('/signup', Register),
 								('/login', Login),
 								('/logout', Logout),
@@ -534,5 +538,5 @@ app = webapp2.WSGIApplication([('/', BlogFront),
 								('/blog/([0-9]+)/delete', DeleteBlogEntry),
 								('/blog/([0-9]+)/like', Like),
 								('/blog/([0-9]+)/comment', CommentHandler),
-								('/blog/([0-9]+)/comment/([0-9]+)/edit', EditComment)], debug = True)
+								('/blog/([0-9]+)/comment/([0-9]+)/edit', EditComment)], debug=True)
 
